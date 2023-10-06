@@ -1697,8 +1697,8 @@ c      write(6,*)
 
       PML_b = PML_L / 1.d0   !characteristic length (average element size in the PML domain) 
 
-      alpha_0 = ((afp+1)*PML_b) / (2.d0*PML_L )*LOG(1.d0 / PML_Rcoef)
-      beta_0 = ((afp+1)*cp_ref) / (2.d0*PML_L )*LOG(1.d0 / PML_Rcoef)
+      alpha_0 = ((afp+1)*PML_b) / (2.d0*PML_L )*LOG10(1.d0 / PML_Rcoef)
+      beta_0 = ((afp+1)*cp_ref) / (2.d0*PML_L )*LOG10(1.d0 / PML_Rcoef)
 
       PML_alpha_beta(1,1) = 1.d0 + alpha_0*((x1 -x1_0) * n1 /PML_L)**afp 
       PML_alpha_beta(1,2) = 1.d0 + alpha_0*((x2 -x2_0) * n2 /PML_L)**afp
