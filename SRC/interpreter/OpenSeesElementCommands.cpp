@@ -251,6 +251,7 @@ void* OPS_PML2D_5(void);
 void* OPS_PML2D_12(void);
 void* OPS_PML2DVISCOUS(void);
 void* OPS_PML3D(void);
+void* OPS_PML3DVISCOUS(void);
 
 
 namespace {
@@ -780,6 +781,7 @@ namespace {
 	functionMap.insert(std::make_pair("PML2D_5", &OPS_PML2D_5));
 	functionMap.insert(std::make_pair("PML2D_12", &OPS_PML2D_12));
 	functionMap.insert(std::make_pair("PML2DVISCOUS", &OPS_PML2DVISCOUS));
+	functionMap.insert(std::make_pair("PML3DVISCOUS", &OPS_PML3DVISCOUS));
 	return 0;
     }
 }

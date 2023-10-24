@@ -672,6 +672,7 @@ ELE_LIBS   =  $(FE)/element/Element.o \
 	$(FE)/element/UWelements/Tcl_generateInterfacePoints.o \
 	$(FE)/element/PML/pml_3d.o \
     $(FE)/element/PML/PML3D.o \
+	$(FE)/element/PML/PML3DVISCOUS.o \
     $(FE)/element/PML/pml_2d.o \
     $(FE)/element/PML/PML2D.o \
 	$(FE)/element/PML/PML2D_3.o \
@@ -949,6 +950,7 @@ MATERIAL_LIBS   =  $(FE)/material/Material.o \
 	$(FE)/material/nD/PlasticDamageConcretePlaneStress.o \
 	$(FE)/element/PML/pml_3d.o \
     $(FE)/element/PML/PML3D.o \
+	$(FE)/element/PML/PML3DVISCOUS.o \
     $(FE)/element/PML/pml_2d.o \
     $(FE)/element/PML/PML2D.o \
 	$(FE)/element/PML/PML2D_3.o \

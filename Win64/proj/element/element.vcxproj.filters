@@ -284,6 +284,9 @@
     <ClCompile Include="..\..\..\SRC\element\PML\PML2DVISCOUS.cpp">
       <Filter>PML</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\SRC\element\PML\PML3DVISCOUS.cpp">
+      <Filter>PML</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\SRC\element\fourNodeQuad\TclFourNodeQuadCommand.cpp">
       <Filter>quad</Filter>
     </ClCompile>
@@ -1802,6 +1805,9 @@
       <Filter>PML</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\SRC\element\PML\PML2DVISCOUS.h">
+      <Filter>PML</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\SRC\element\PML\PML3DVISCOUS.h">
       <Filter>PML</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\SRC\element\RockingBC\RockingBC.h">

@@ -138,6 +138,7 @@ extern void *OPS_PML2D_3(void);
 extern void *OPS_PML2D_5(void);
 extern void *OPS_PML2D_12(void);
 extern void *OPS_PML2DVISCOUS(void);
+extern void *OPS_PML3DVISCOUS(void);
 extern void *OPS_CorotTruss2(void);
 extern void *OPS_ZeroLengthImpact3D(void);
 extern void *OPS_HDR(void);
@@ -570,8 +571,8 @@ TclModelBuilderElementCommand(ClientData clientData, Tcl_Interp *interp,
     ID info;
     if (OPS_GetNDM() == 2)
       theEle = (Element *)OPS_PML2DVISCOUS();
-    // else
-    //   theEle = (Element *)OPS_PML3DVISCOUS();
+    if (OPS_GetNDM() == 3)
+      theEle = (Element *)OPS_PML3DVISCOUS();
     if (theEle != 0) 
       theElement = theEle;
     else {
