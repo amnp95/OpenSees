@@ -716,8 +716,14 @@ void  PML3DVISCOUS::setDomain(Domain* theDomain)
 	// Call Fortran function
     pml3d_(M, C, K, G, H, &NDOFEL, props, coords, &MCRD, &NNODE, &LFLAGS);
     
-    // Calculate matrices using C++ implementation
-    // calculateCppMatrices(props, coords, NDOFEL, MCRD, NNODE, LFLAGS);
+    // loop over num integration points and calculate the pml parameters for each
+    for (int i = 0; i < 27; i++) {
+        double x = xi[0][i];
+        double y = xi[1][i];
+        double z = xi[2][i];
+        double pmlAlphaBeta[2][3];
+        calculatePMLParameters(props, x, y, z, pmlAlphaBeta);
+    }
     
     // Verify the matrices
     verifyMatrices();
