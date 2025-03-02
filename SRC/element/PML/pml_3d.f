@@ -808,221 +808,9 @@
           end do
         end do
 
-      
-      ! print Ele_type pos
-      ! write(*,*) ' EleType_pos', EleType_pos
-      ! MMATRX(1:NDOFEL,1:NDOFEL) = GMATRX(1:NDOFEL,1:NDOFEL)
-      
-CMATRX(1:NDOFEL,1:NDOFEL) = CMATRX(1:NDOFEL,1:NDOFEL) + Damp_alpha*MMATRX(1:NDOFEL,1:NDOFEL) + Damp_beta*KMATRX(1:NDOFEL,1:NDOFEL)
-
-
-   !    IF (LFLAGS(1).EQ.1 .OR. LFLAGS(1).EQ.2) THEN
-   !      AMATRX(1:NDOFEL,1:NDOFEL) = KMATRX(1:NDOFEL,1:NDOFEL)
-   !      RHS(1:NDOFEL,1) = RHS(1:NDOFEL,1) 
-   !   1        - matmul(KMATRX(1:NDOFEL,1:NDOFEL),U(1:NDOFEL))
-
-   !    ELSE IF (LFLAGS(1).EQ.11 .OR. LFLAGS(1).EQ.12) THEN
-
-
-   !      d_bar_n(1:NDOFEL) = SVARS(1:NDOFEL)
-   !      U_n(1:NDOFEL) = SVARS(NDOFEL+1:NDOFEL*2)
-   !      V_n(1:NDOFEL) = SVARS(2*NDOFEL+1:NDOFEL*3)
-   !      A_n(1:NDOFEL) = SVARS(3*NDOFEL+1:NDOFEL*4)
-   !      d_bar_dot_n(1:NDOFEL) = SVARS(4*NDOFEL+1:NDOFEL*5)
-
-
-
-   !      d_bar_n1(1:NDOFEL) = d_bar_n(1:NDOFEL) + 
-   !   1    DTIME*U_n(1:NDOFEL) + DTIME**2.d0/2.d0*V_n(1:NDOFEL) +
-   !   2    DTIME**3.d0*(1.d0/6.d0 - coef_alpha)*A_n(1:NDOFEL) + 
-   !   3    DTIME**3.d0*coef_alpha*A(1:NDOFEL)
-        
-   !      d_bar_dot_n1(1:NDOFEL) = d_bar_dot_n(1:NDOFEL) + 
-   !   1    DTIME*d_bar_n(1:NDOFEL) + DTIME**2.d0/2.d0*U_n(1:NDOFEL) +
-   !   2    DTIME**3.d0/6.d0*V_n(1:NDOFEL) + 
-   !   3    DTIME**4.d0*(1.d0/24.d0-coef_beta)*A_n(1:NDOFEL) + 
-   !   4    DTIME**4.d0*coef_beta*A(1:NDOFEL)
-
-
-   !      AMATRX(1:NDOFEL,1:NDOFEL) = 
-   !   1     (1.d0+ALPHA)*HMATRX(1:NDOFEL,1:NDOFEL)*DTIME**2.d0*coef_beta/
-   !   2     BETA 
-   !   3   + (1.d0+ALPHA)*GMATRX(1:NDOFEL,1:NDOFEL)*DTIME*coef_alpha/BETA
-   !   4   + (1.d0+ALPHA)*KMATRX(1:NDOFEL,1:NDOFEL)
-   !   5   + (1.d0+ALPHA)*CMATRX(1:NDOFEL,1:NDOFEL)*DVDU
-   !   6   + MMATRX(1:NDOFEL,1:NDOFEL)*DADU
-
-   !      RHS(1:NDOFEL,1) = RHS(1:NDOFEL,1) 
-   !   &    - matmul(MMATRX(1:NDOFEL,1:NDOFEL),A(1:NDOFEL))
-   !   &    - (1.d0+ALPHA)*matmul(KMATRX(1:NDOFEL,1:NDOFEL),U(1:NDOFEL))
-   !   &    - (1.d0+ALPHA)*matmul(CMATRX(1:NDOFEL,1:NDOFEL),V(1:NDOFEL))
-   !   &    - (1.d0+ALPHA)*
-   !   &            matmul(GMATRX(1:NDOFEL,1:NDOFEL),d_bar_n1(1:NDOFEL))
-   !   &    - (1.d0+ALPHA)*
-   !   &        matmul(HMATRX(1:NDOFEL,1:NDOFEL),d_bar_dot_n1(1:NDOFEL))
-   !   &    + ALPHA*matmul(KMATRX(1:NDOFEL,1:NDOFEL),U_n(1:NDOFEL))
-   !   &    + ALPHA*matmul(CMATRX(1:NDOFEL,1:NDOFEL),V_n(1:NDOFEL))
-   !   &    + ALPHA*matmul(GMATRX(1:NDOFEL,1:NDOFEL),d_bar_n(1:NDOFEL))
-   !   &    +ALPHA*matmul(HMATRX(1:NDOFEL,1:NDOFEL),d_bar_dot_n(1:NDOFEL))
-
-
-   !      SVARS(1:NDOFEL) = d_bar_n1(1:NDOFEL)
-   !      SVARS(NDOFEL+1:NDOFEL*2) = U(1:NDOFEL)
-   !      SVARS(2*NDOFEL+1:NDOFEL*3) = V(1:NDOFEL)
-   !      SVARS(3*NDOFEL+1:NDOFEL*4) = A(1:NDOFEL)
-   !      SVARS(4*NDOFEL+1:NDOFEL*5) = d_bar_dot_n1(1:NDOFEL)
-
-   !    ELSE   
-   !      write(6,*) ' Error in abaqus UEL '
-   !      write(6,*) ' Analsis types not supported'
-   !      stop   
-   !    END IF
-
-
-
-   !  !  PNEWDT = 1.d0          ! This leaves the timestep unchanged (ABAQUS will use its own algorithm to determine DTIME)
-   !  !
-   !  !   Apply distributed loads
-   !  !
-   !  !   Distributed loads are specified in the input file using the Un option in the input file.
-   !  !   n specifies the face number, following the ABAQUS convention
-   !  !
-   !  !
-   !    do j = 1,NDLOAD
-
-   !      call abq_facenodes_3D(NNODE,iabs(JDLTYP(j,1)),
-   !   1                                     face_node_list,nfacenodes)
-
-   !      do i = 1,nfacenodes
-   !          face_coords(1:3,i) = coords(1:3,face_node_list(i))
-   !      end do
-
-   !      if (nfacenodes == 3) n_points = 3
-   !      if (nfacenodes == 6) n_points = 4
-   !      if (nfacenodes == 4) n_points = 4
-   !      if (nfacenodes == 8) n_points = 9
-
-   !      call abq_UEL_2D_integrationpoints(n_points, nfacenodes, xi2, w)
-
-   !      do kint = 1,n_points
-   !          call abq_UEL_2D_shapefunctions(xi2(1:2,kint),
-   !   1                        nfacenodes,N2,dNdxi2)
-   !          dxdxi2 = matmul(face_coords(1:3,1:nfacenodes),
-   !   1                           dNdxi2(1:nfacenodes,1:2))
-   !          norm(1)=(dxdxi2(2,1)*dxdxi2(3,2))-(dxdxi2(2,2)*dxdxi2(3,1))
-   !          norm(2)=(dxdxi2(1,1)*dxdxi2(3,2))-(dxdxi2(1,2)*dxdxi2(3,1))
-   !          norm(3)=(dxdxi2(1,1)*dxdxi2(2,2))-(dxdxi2(1,2)*dxdxi2(2,1))
-
-   !          do i = 1,nfacenodes
-   !              ipoin = face_node_list(i)
-   !              RHS(ipoin:ipoin+2*9:9,1) = RHS(ipoin:ipoin+2*9:9,1)
-   !   1                 - N2(i)*adlmag(j,1)*norm(1:3)*w(kint)      ! Note determinant is already in normal
-   !          end do
-   !      end do
-   !    end do
-
-   ! check symmetry of matrices with tolerance
-
-      ! insert MMatrix in to M_PMl
-      ! M_PML(1:NDOFEL,1:NDOFEL) = MMATRX(1:NDOFEL,1:NDOFEL)
-      ! C_PML(1:NDOFEL,1:NDOFEL) = CMATRX(1:NDOFEL,1:NDOFEL)
-      ! K_PML(1:NDOFEL,1:NDOFEL) = KMATRX(1:NDOFEL,1:NDOFEL)
-      ! G_PML(1:NDOFEL,1:NDOFEL) = GMATRX(1:NDOFEL,1:NDOFEL)
-      ! H_PML(1:NDOFEL,1:NDOFEL) = HMATRX(1:NDOFEL,1:NDOFEL)
-      
-
-    !   call check_symmetry(M_PML,1.d-10,res1,"M")
-    !   if (res1 == 1) then
-    !      write(6,*) 'M_PML is symmetric ', res1
-    !   end if
-    !   call check_symmetry(G_PML,1.d-10,res4,"G")
-    !   if (res4 == 1) then
-    !      write(6,*) 'G_PML is symmetric ', res4
-    !   end if
-    !   call check_symmetry(H_PML,1.d-10,res5,"H")
-    !   if (res5 == 1) then 
-    !      write(6,*) 'H_PML is symmetric ', res5
-    !   end if
-    !   call check_symmetry(K_PML,1.d-10,res3,"K")
-    !   if (res3 == 1) then 
-    !      write(6,*) 'K_PML is symmetric ', res3
-    !   end if
-    !   call check_symmetry(C_PML,1.d-10,res2,"C")
-    !   if (res2 == 1) then 
-    !      write(6,*) 'C_PML is symmetric ', res2
-    !   end if
-
-    !   call check_zero(M_PML,1.d-10,res1,"M")
-    !   if (res1 == 1) write(6,*) 'M_PML is zero ', res1
-    !   call check_zero(G_PML,1.d-10,res1,"G")
-    !   if (res1 == 1) write(6,*) 'G_PML is zero ', res1
-    !   call check_zero(H_PML,1.d-10,res1,"H")
-    !   if (res1 == 1) write(6,*) 'H_PML is zero ', res1
-    !   call check_zero(K_PML,1.d-10,res1,"K")
-    !   if (res1 == 1) write(6,*) 'K_PML is zero ', res1
-    !   call check_zero(C_PML,1.d-10,res1,"C")
-    !   if (res1 == 1) write(6,*) 'C_PML is zero ', res1
-
-
       return
 
       END SUBROUTINE PML_3D
-
-   
-      ! check symmetry of matrices with tolerance
-      subroutine check_symmetry(AMATRX,RTOL,a,char)
-      
-         implicit none
-         double precision, intent(in) :: AMATRX(72,72)
-         double precision, intent(in) :: RTOL
-         character(len=1), intent(in) :: char
-         integer , intent(out) :: a
-         integer :: i,j
-
-         a = 1
-
-         do i = 1, 72
-         do j = 1, 72
-            if (abs(AMATRX(i,j)-AMATRX(j,i)) > RTOL) then
-               write(6,*) 'Matrix ',char,' is not symmetric'
-               write(6,*) '(i,j) = ',AMATRX(i,j)
-               write(6,*) '(j,i) = ',AMATRX(j,i)
-               a = 0
-               exit
-            endif
-         end do
-         if (a == 0) exit
-         end do
-
-         return
-      end subroutine check_symmetry
-
-
-      subroutine check_zero(AMATRX,RTOL,a,char)
-      
-         implicit none
-         double precision, intent(in) :: AMATRX(72,72)
-         double precision, intent(in) :: RTOL
-         character(len=1), intent(in) :: char
-         integer , intent(out) :: a
-         integer :: i,j
-
-         a = 1
-
-         do i = 1, 72
-         do j = 1, 72
-            if (abs(AMATRX(i,j)) > RTOL) then
-               write(6,*) 'Matrix ',char,' is not zero'
-               write(6,*) '(i,j) = ',AMATRX(i,j)
-               a = 0
-               exit
-            endif
-         end do
-         if (a == 0) exit
-         end do
-
-         return
-      end subroutine check_zero
 
       subroutine abq_UEL_3D_integrationpoints(n_points, n_nodes, xi, w)
 
@@ -1451,301 +1239,6 @@ CMATRX(1:NDOFEL,1:NDOFEL) = CMATRX(1:NDOFEL,1:NDOFEL) + Damp_alpha*MMATRX(1:NDOF
 
       end subroutine abq_facenodes_3D
 
-      subroutine abq_UEL_2D_integrationpoints(n_points, n_nodes, xi, w)
-
-      implicit none
-      integer, intent(in) :: n_points
-      integer, intent(in) :: n_nodes
-
-      double precision, intent(out) :: xi(2,*)
-      double precision, intent(out) :: w(*)
-
-      ! integer :: i,j,k,n
-
-      double precision :: cn,w1,w2,w11,w12,w22
-
-    !         Defines integration points and weights for 2D continuum elements
-
-      if ( n_points==1 ) then
-        if ( n_nodes==4 .or. n_nodes==9 ) then    !     ---   4 or 9 noded quad
-            xi(1, 1) = 0.D0
-            xi(2, 1) = 0.D0
-            w(1) = 4.D0
-        else if ( n_nodes==3 .or. n_nodes==6 ) then !     ---   3 or 6 noded triangle
-            xi(1, 1) = 1.D0/3.D0
-            xi(2, 1) = 1.D0/3.D0
-            w(1) = 1.D0/2.D0
-        end if
-      else if ( n_points==3 ) then
-        xi(1, 1) = 0.5D0
-        xi(2, 1) = 0.5D0
-        w(1) = 1.D0/6.D0
-        xi(1, 2) = 0.D0
-        xi(2, 2) = 0.5D0
-        w(2) = w(1)
-        xi(1, 3) = 0.5D0
-        xi(2, 3) = 0.D0
-        w(3) = w(1)
-      else if ( n_points==4 ) then
-        if ( n_nodes==4 .or. n_nodes==8 .or. n_nodes==9 ) then
-            !     2X2 GAUSS INTEGRATION POINTS FOR QUADRILATERAL
-            !     43
-            !     12
-            cn = 0.5773502691896260D0
-            xi(1, 1) = -cn
-            xi(1, 2) = cn
-            xi(1, 3) = cn
-            xi(1, 4) = -cn
-            xi(2, 1) = -cn
-            xi(2, 2) = -cn
-            xi(2, 3) = cn
-            xi(2, 4) = cn
-            w(1) = 1.D0
-            w(2) = 1.D0
-            w(3) = 1.D0
-            w(4) = 1.D0
-        else if ( n_nodes==3 .or. n_nodes==6 ) then
-            !     xi integration points for triangle
-            xi(1, 1) = 1.D0/3.D0
-            xi(2, 1) = xi(1, 1)
-            w(1) = -27.D0/96.D0
-            xi(1, 2) = 0.6D0
-            xi(2, 2) = 0.2D0
-            w(2) = 25.D0/96.D0
-            xi(1, 3) = 0.2D0
-            xi(2, 3) = 0.6D0
-            w(3) = w(2)
-            xi(1, 4) = 0.2D0
-            xi(2, 4) = 0.2D0
-            w(4) = w(2)
-        end if
-
-      else if ( n_points==7 ) then
-        ! Quintic integration for triangle
-        xi(1,1) = 1.d0/3.d0
-        xi(2,1) = xi(1,1)
-        w(1) = 0.1125d0
-        xi(1,2) = 0.0597158717d0
-        xi(2,2) = 0.4701420641d0
-        w(2) = 0.0661970763d0
-        xi(1,3) = xi(2,2)
-        xi(2,3) = xi(1,2)
-        w(3) = w(2)
-        xi(1,4) = xi(2,2)
-        xi(2,4) = xi(2,2)
-        w(4) = w(2)
-        xi(1,5) = 0.7974269853d0
-        xi(2,5) = 0.1012865073d0
-        w(5) = 0.0629695902d0
-        xi(1,6) = xi(2,5)
-        xi(2,6) = xi(1,5)
-        w(6) = w(5)
-        xi(1,7) = xi(2,5)
-        xi(2,7) = xi(2,5)
-        w(7) = w(5)
-      else if ( n_points==9 ) then
-        !     3X3 GAUSS INTEGRATION POINTS
-        !     789
-        !     456
-        !     123
-        cn = 0.7745966692414830D0
-        xi(1, 1) = -cn
-        xi(1, 2) = 0.D0
-        xi(1, 3) = cn
-        xi(1, 4) = -cn
-        xi(1, 5) = 0.D0
-        xi(1, 6) = cn
-        xi(1, 7) = -cn
-        xi(1, 8) = 0.D0
-        xi(1, 9) = cn
-        xi(2, 1) = -cn
-        xi(2, 2) = -cn
-        xi(2, 3) = -cn
-        xi(2, 4) = 0.D0
-        xi(2, 5) = 0.D0
-        xi(2, 6) = 0.D0
-        xi(2, 7) = cn
-        xi(2, 8) = cn
-        xi(2, 9) = cn
-        w1 = 0.5555555555555560D0
-        w2 = 0.8888888888888890D0
-        w11 = w1*w1
-        w12 = w1*w2
-        w22 = w2*w2
-        w(1) = w11
-        w(2) = w12
-        w(3) = w11
-        w(4) = w12
-        w(5) = w22
-        w(6) = w12
-        w(7) = w11
-        w(8) = w12
-        w(9) = w11
-      end if
-
-      return
-
-      end subroutine abq_UEL_2D_integrationpoints
-
-
-
-
-      subroutine abq_UEL_2D_shapefunctions(xi,n_nodes,f,df)
-
-      implicit none
-      integer, intent(in) :: n_nodes
-
-      double precision, intent(in) :: xi(2)
-      double precision, intent(out) :: f(*)
-      double precision, intent(out) :: df(9,2)
-      double precision g1, g2, g3, dg1, dg2, dg3
-      double precision h1, h2, h3, dh1, dh2, dh3
-      double precision z,dzdp, dzdq
-
-            if ( n_nodes==3 ) then        !     SHAPE FUNCTIONS FOR 3 NODED TRIANGLE
-                f(1) = xi(1)
-                f(2) = xi(2)
-                f(3) = 1.D0 - xi(1) - xi(2)
-                df(1, 1) = 1.D0
-                df(1, 2) = 0.D0
-                df(2, 1) = 0.D0
-                df(2, 2) = 1.D0
-                df(3, 1) = -1.D0
-                df(3, 2) = -1.D0
-            else if ( n_nodes==4 ) then
-                !     SHAPE FUNCTIONS FOR 4 NODED QUADRILATERAL
-                !     43
-                !     12
-                g1 = 0.5D0*(1.D0 - xi(1))
-                g2 = 0.5D0*(1.D0 + xi(1))
-                h1 = 0.5D0*(1.D0 - xi(2))
-                h2 = 0.5D0*(1.D0 + xi(2))
-                f(1) = g1*h1
-                f(2) = g2*h1
-                f(3) = g2*h2
-                f(4) = g1*h2
-                dg1 = -0.5D0
-                dg2 = 0.5D0
-                dh1 = -0.5D0
-                dh2 = 0.5D0
-                df(1, 1) = dg1*h1
-                df(2, 1) = dg2*h1
-                df(3, 1) = dg2*h2
-                df(4, 1) = dg1*h2
-                df(1, 2) = g1*dh1
-                df(2, 2) = g2*dh1
-                df(3, 2) = g2*dh2
-                df(4, 2) = g1*dh2
-
-            else if ( n_nodes==6 ) then
-
-                !     SHAPE FUNCTIONS FOR 6 NODED TRIANGLE
-                !          3
-
-                !       6      5
-
-                !     1    4     2
-
-                !     P = L1
-                !     Q = L2
-                !     Z = 1 - P - Q = L3
-
-                z = 1.D0 - xi(1) - xi(2)
-                f(1) = (2.D0*xi(1) - 1.D0)*xi(1)
-                f(2) = (2.D0*xi(2) - 1.D0)*xi(2)
-                f(3) = (2.D0*z - 1.D0)*z
-                f(4) = 4.D0*xi(1)*xi(2)
-                f(5) = 4.D0*xi(2)*z
-                f(6) = 4.D0*xi(1)*z
-                dzdp = -1.D0
-                dzdq = -1.D0
-                df(1, 1) = 4.D0*xi(1) - 1.D0
-                df(2, 1) = 0.D0
-                df(3, 1) = 4.D0*z*dzdp - dzdp
-                df(4, 1) = 4.D0*xi(2)
-                df(5, 1) = 4.D0*xi(2)*dzdp
-                df(6, 1) = 4.D0*z + 4.D0*xi(1)*dzdp
-                df(1, 2) = 0.D0
-                df(2, 2) = 4.D0*xi(2) - 1.D0
-                df(3, 2) = 4.D0*z*dzdq - dzdq
-                df(4, 2) = 4.D0*xi(1)
-                df(5, 2) = 4.D0*z + 4.D0*xi(2)*dzdq
-                df(6, 2) = 4.D0*xi(1)*dzdq
-
-            else if ( n_nodes==8 ) then
-                !     SHAPE FUNCTIONS FOR 8 NODED SERENDIPITY ELEMENT
-                 f(1) = -0.25*(1.-xi(1))*(1.-xi(2))*(1.+xi(1)+xi(2))
-                 f(2) = 0.25*(1.+xi(1))*(1.-xi(2))*(xi(1)-xi(2)-1.)
-                 f(3) = 0.25*(1.+xi(1))*(1.+xi(2))*(xi(1)+xi(2)-1.)
-                 f(4) = 0.25*(1.-xi(1))*(1.+xi(2))*(xi(2)-xi(1)-1.)
-                 f(5) = 0.5*(1.-xi(1)*xi(1))*(1.-xi(2))
-                 f(6) = 0.5*(1.+xi(1))*(1.-xi(2)*xi(2))
-                 f(7) = 0.5*(1.-xi(1)*xi(1))*(1.+xi(2))
-                 f(8) = 0.5*(1.-xi(1))*(1.-xi(2)*xi(2))
-                 df(1,1) = 0.25*(1.-xi(2))*(2.*xi(1)+xi(2))
-                 df(1,2) = 0.25*(1.-xi(1))*(xi(1)+2.*xi(2))
-                 df(2,1) = 0.25*(1.-xi(2))*(2.*xi(1)-xi(2))
-                 df(2,2) = 0.25*(1.+xi(1))*(2.*xi(2)-xi(1))
-                 df(3,1) = 0.25*(1.+xi(2))*(2.*xi(1)+xi(2))
-                 df(3,2) = 0.25*(1.+xi(1))*(2.*xi(2)+xi(1))
-                 df(4,1) = 0.25*(1.+xi(2))*(2.*xi(1)-xi(2))
-                 df(4,2) = 0.25*(1.-xi(1))*(2.*xi(2)-xi(1))
-                 df(5,1) = -xi(1)*(1.-xi(2))
-                 df(5,2) = -0.5*(1.-xi(1)*xi(1))
-                 df(6,1) = 0.5*(1.-xi(2)*xi(2))
-                 df(6,2) = -(1.+xi(1))*xi(2)
-                 df(7,1) = -xi(1)*(1.+xi(2))
-                 df(7,2) = 0.5*(1.-xi(1)*xi(1))
-                 df(8,1) = -0.5*(1.-xi(2)*xi(2))
-                 df(8,2) = -(1.-xi(1))*xi(2)
-            else if ( n_nodes==9 ) then
-                !     SHAPE FUNCTIONS FOR 9 NODED LAGRANGIAN ELEMENT
-                !     789
-                !     456
-                !     123
-                g1 = -.5D0*xi(1)*(1.D0 - xi(1))
-                g2 = (1.D0 - xi(1))*(1.D0 + xi(1))
-                g3 = .5D0*xi(1)*(1.D0 + xi(1))
-                h1 = -.5D0*xi(2)*(1.D0 - xi(2))
-                h2 = (1.D0 - xi(2))*(1.D0 + xi(2))
-                h3 = .5D0*xi(2)*(1.D0 + xi(2))
-                dg1 = xi(1) - 0.5d0
-                dg2 = -2.d0*xi(1)
-                dg3 = xi(1) + 0.5d0
-                dh1 = xi(2)-0.5d0
-                dh2 = -2.d0*xi(2)
-                dh3 = xi(2) + 0.5d0
-                f(1) = g1*h1
-                f(2) = g2*h1
-                f(3) = g3*h1
-                f(4) = g1*h2
-                f(5) = g2*h2
-                f(6) = g3*h2
-                f(7) = g1*h3
-                f(8) = g2*h3
-                f(9) = g3*h3
-                df(1,1) = dg1*h1
-                df(1,2) = g1*dh1
-                df(2,1) = dg2*h1
-                df(2,2) = g2*dh1
-                df(3,1) = dg3*h1
-                df(3,2) = g3*dh1
-                df(4,1) = dg1*h2
-                df(4,2) = g1*dh2
-                df(5,1) = dg2*h2
-                df(5,2) = g2*dh2
-                df(6,1) = dg3*h2
-                df(6,2) = g3*dh2
-                df(7,1) = dg1*h3
-                df(7,2) = g1*dh3
-                df(8,1) = dg2*h3
-                df(8,2) = g2*dh3
-                df(9,1) = dg3*h3
-                df(9,2) = g3*dh3
-            end if
-
-      end subroutine abq_UEL_2D_shapefunctions
-
 
       subroutine PML_alpha_beta_function(PROPS,x1,x2,x3,PML_alpha_beta)
 
@@ -2036,64 +1529,64 @@ CMATRX(1:NDOFEL,1:NDOFEL) = CMATRX(1:NDOFEL,1:NDOFEL) + Damp_alpha*MMATRX(1:NDOF
 
 
 
-      ! Modified section for M-PML
-      IF (EleType_arg .EQ.1) THEN
-         ! Regular domain - no stretching
-         PML_alpha_beta(1:2,1:3) = 0.d0
-      ELSE
-         ! First calculate standard PML stretching in the normal direction
-         ! This part is similar to your existing code
-         PML_b = PML_L / 1.d0
-         alpha_0 = ((afp+1)*PML_b) / (2.d0*PML_L)*LOG10(1.d0/PML_Rcoef)
-         beta_0 = ((afp+1)*cp_ref) / (2.d0*PML_L)*LOG10(1.d0/PML_Rcoef)
+      ! ! Modified section for M-PML
+      ! IF (EleType_arg .EQ.1) THEN
+      !    ! Regular domain - no stretching
+      !    PML_alpha_beta(1:2,1:3) = 0.d0
+      ! ELSE
+      !    ! First calculate standard PML stretching in the normal direction
+      !    ! This part is similar to your existing code
+      !    PML_b = PML_L / 1.d0
+      !    alpha_0 = ((afp+1)*PML_b) / (2.d0*PML_L)*LOG10(1.d0/PML_Rcoef)
+      !    beta_0 = ((afp+1)*cp_ref) / (2.d0*PML_L)*LOG10(1.d0/PML_Rcoef)
          
-         ! Primary stretching in normal direction
-         PML_alpha_beta(1,1) = 1.d0 + alpha_0*((x1-x1_0)*n1/PML_L)**afp 
-         PML_alpha_beta(1,2) = 1.d0 + alpha_0*((x2-x2_0)*n2/PML_L)**afp
-         PML_alpha_beta(1,3) = 1.d0 + alpha_0*((x3-x3_0)*n3/PML_L)**afp
+      !    ! Primary stretching in normal direction
+      !    PML_alpha_beta(1,1) = 1.d0 + alpha_0*((x1-x1_0)*n1/PML_L)**afp 
+      !    PML_alpha_beta(1,2) = 1.d0 + alpha_0*((x2-x2_0)*n2/PML_L)**afp
+      !    PML_alpha_beta(1,3) = 1.d0 + alpha_0*((x3-x3_0)*n3/PML_L)**afp
          
-         PML_alpha_beta(2,1) = beta_0*((x1-x1_0)*n1/PML_L)**afp 
-         PML_alpha_beta(2,2) = beta_0*((x2-x2_0)*n2/PML_L)**afp
-         PML_alpha_beta(2,3) = beta_0*((x3-x3_0)*n3/PML_L)**afp
+      !    PML_alpha_beta(2,1) = beta_0*((x1-x1_0)*n1/PML_L)**afp 
+      !    PML_alpha_beta(2,2) = beta_0*((x2-x2_0)*n2/PML_L)**afp
+      !    PML_alpha_beta(2,3) = beta_0*((x3-x3_0)*n3/PML_L)**afp
 
       
-         IF (abs(n1) .GT. 0.5d0) THEN
-            ! X-directed PML layer
-            IF (PML_alpha_beta(1,1) .GT. 1.d0) THEN
-               ! Add proportional stretching in y and z directions
-               tmp = proportion_factor*(PML_alpha_beta(1,1)-1.d0)
-               PML_alpha_beta(1,2) = 1.d0 + tmp
-               PML_alpha_beta(1,3) = 1.d0 + tmp
-               tmp = proportion_factor*PML_alpha_beta(2,1)
-               PML_alpha_beta(2,2) = tmp
-               PML_alpha_beta(2,3) = tmp
-            ENDIF
-         ENDIF
+      !    IF (abs(n1) .GT. 0.5d0) THEN
+      !       ! X-directed PML layer
+      !       IF (PML_alpha_beta(1,1) .GT. 1.d0) THEN
+      !          ! Add proportional stretching in y and z directions
+      !          tmp = proportion_factor*(PML_alpha_beta(1,1)-1.d0)
+      !          PML_alpha_beta(1,2) = 1.d0 + tmp
+      !          PML_alpha_beta(1,3) = 1.d0 + tmp
+      !          tmp = proportion_factor*PML_alpha_beta(2,1)
+      !          PML_alpha_beta(2,2) = tmp
+      !          PML_alpha_beta(2,3) = tmp
+      !       ENDIF
+      !    ENDIF
 
-         IF (abs(n2) .GT. 0.5d0) THEN
-            ! Y-directed PML layer
-            IF (PML_alpha_beta(1,2) .GT. 1.d0) THEN
-               ! Add proportional stretching in x and z directions
-               tmp = proportion_factor*(PML_alpha_beta(1,2)-1.d0)
-               PML_alpha_beta(1,1) = 1.d0 + tmp
-               PML_alpha_beta(1,3) = 1.d0 + tmp
-               tmp = proportion_factor*PML_alpha_beta(2,2)
-               PML_alpha_beta(2,1) = tmp
-               PML_alpha_beta(2,3) = tmp
-            ENDIF
-         ENDIF
+      !    IF (abs(n2) .GT. 0.5d0) THEN
+      !       ! Y-directed PML layer
+      !       IF (PML_alpha_beta(1,2) .GT. 1.d0) THEN
+      !          ! Add proportional stretching in x and z directions
+      !          tmp = proportion_factor*(PML_alpha_beta(1,2)-1.d0)
+      !          PML_alpha_beta(1,1) = 1.d0 + tmp
+      !          PML_alpha_beta(1,3) = 1.d0 + tmp
+      !          tmp = proportion_factor*PML_alpha_beta(2,2)
+      !          PML_alpha_beta(2,1) = tmp
+      !          PML_alpha_beta(2,3) = tmp
+      !       ENDIF
+      !    ENDIF
 
-         IF (abs(n3) .GT. 0.5d0) THEN
-            ! Z-directed PML layer
-            IF (PML_alpha_beta(1,3) .GT. 1.d0) THEN
-               ! Add proportional stretching in x and y directions
-               tmp = proportion_factor*(PML_alpha_beta(1,3)-1.d0)
-               PML_alpha_beta(1,1) = 1.d0 + tmp
-               PML_alpha_beta(1,2) = 1.d0 + tmp
-               tmp = proportion_factor*PML_alpha_beta(2,3)
-               PML_alpha_beta(2,1) = tmp
-               PML_alpha_beta(2,2) = tmp
-            ENDIF
-         ENDIF
-      END IF
+      !    IF (abs(n3) .GT. 0.5d0) THEN
+      !       ! Z-directed PML layer
+      !       IF (PML_alpha_beta(1,3) .GT. 1.d0) THEN
+      !          ! Add proportional stretching in x and y directions
+      !          tmp = proportion_factor*(PML_alpha_beta(1,3)-1.d0)
+      !          PML_alpha_beta(1,1) = 1.d0 + tmp
+      !          PML_alpha_beta(1,2) = 1.d0 + tmp
+      !          tmp = proportion_factor*PML_alpha_beta(2,3)
+      !          PML_alpha_beta(2,1) = tmp
+      !          PML_alpha_beta(2,2) = tmp
+      !       ENDIF
+      !    ENDIF
+      ! END IF
       end subroutine PML_alpha_beta_function
