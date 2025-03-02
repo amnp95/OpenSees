@@ -1201,6 +1201,8 @@
       double precision alpha_0, beta_0, proportion_factor, tmp
       double precision RD_half_width_x, RD_half_width_y, RD_depth
 
+      double precision :: alpha(3), beta(3)
+
       ! Add a new parameter for the proportion factor in M-PML
       proportion_factor = 0.1d0  ! Can be tuned (typical values range from 0.1 to 0.5)
 
@@ -1494,10 +1496,18 @@
          PML_alpha_beta(2,2) = beta_0*((x2-x2_0)*n2/PML_L)**afp
          PML_alpha_beta(2,3) = beta_0*((x3-x3_0)*n3/PML_L)**afp
       ENDIF
+      alpha(1) = PML_alpha_beta(1,1)
+      alpha(2) = PML_alpha_beta(1,2)
+      alpha(3) = PML_alpha_beta(1,3)
+      beta(1) = PML_alpha_beta(2,1)
+      beta(2) = PML_alpha_beta(2,2)
+      beta(3) = PML_alpha_beta(2,3)
+      
       ! print alpha and beta for debugging
       write(6,*) "for x1 = ",x1," x2 = ",x2," x3 = ",x3
-      write(6,*) "alpha = ",PML_alpha_beta(1,1),PML_alpha_beta(1,2),PML_alpha_beta(1,3)
-      write(6,*) "beta = ",PML_alpha_beta(2,1),PML_alpha_beta(2,2),PML_alpha_beta(2,3)      
+      write(6,*) "alpha = ",alpha(1),alpha(2),alpha(3)
+      write(6,*) "beta = ",beta(1),beta(2),beta(3)
+      
 
 
       end subroutine PML_alpha_beta_function
