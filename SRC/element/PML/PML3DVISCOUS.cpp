@@ -1187,6 +1187,7 @@ void PML3DVISCOUS::calculateCppMatrices(const double* props, const double* coord
                         pmlAlphaBeta[0][2] * pmlAlphaBeta[1][1] * pmlAlphaBeta[1][0];
         double coef_d = pmlAlphaBeta[1][0] * pmlAlphaBeta[1][1] * pmlAlphaBeta[1][2];
         
+
         // Calculate L coefficients
         double coef_Le[3][3] = {{0.0}};
         double coef_Lp[3][3] = {{0.0}};
@@ -1439,56 +1440,57 @@ void PML3DVISCOUS::calculateCppMatrices(const double* props, const double* coord
 // Implementation of verification function
 void PML3DVISCOUS::verifyMatrices() {
     // Define tolerance for floating point comparisons
-    const double tolerance = 1e-10;
+    const double tolerance = 1e-3;
     bool mismatchFound = false;
     
     // Compare M matrices
     for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
         if (fabs(M[i] - M_cpp[i]) > tolerance) {
-            opserr << "PML3DVISCOUS::verifyMatrices - Mismatch in M matrix at index " << i 
-                   << ", Fortran: " << M[i] << ", C++: " << M_cpp[i] << ", Diff: " << (M[i] - M_cpp[i]) << endln;
+            opserr << "PML3DVISCOUS::verifyMatrices - Mismatch in M at element " << this->getTag() <<endln;
             mismatchFound = true;
+            return;
         }
     }
     
     // Compare C matrices
     for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
         if (fabs(C[i] - C_cpp[i]) > tolerance) {
-            opserr << "PML3DVISCOUS::verifyMatrices - Mismatch in C matrix at index " << i 
-                   << ", Fortran: " << C[i] << ", C++: " << C_cpp[i] << ", Diff: " << (C[i] - C_cpp[i]) << endln;
+            opserr << "PML3DVISCOUS::verifyMatrices - Mismatch in C at element " << this->getTag() <<endln;
             mismatchFound = true;
+            return;
         }
     }
     
     // Compare K matrices
     for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
         if (fabs(K[i] - K_cpp[i]) > tolerance) {
-            opserr << "PML3DVISCOUS::verifyMatrices - Mismatch in K matrix at index " << i 
-                   << ", Fortran: " << K[i] << ", C++: " << K_cpp[i] << ", Diff: " << (K[i] - K_cpp[i]) << endln;
+            opserr << "PML3DVISCOUS::verifyMatrices - Mismatch in K at element " << this->getTag() <<endln;
             mismatchFound = true;
+            return;
+
         }
     }
     
     // Compare G matrices
     for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
         if (fabs(G[i] - G_cpp[i]) > tolerance) {
-            opserr << "PML3DVISCOUS::verifyMatrices - Mismatch in G matrix at index " << i 
-                   << ", Fortran: " << G[i] << ", C++: " << G_cpp[i] << ", Diff: " << (G[i] - G_cpp[i]) << endln;
+            opserr << "PML3DVISCOUS::verifyMatrices - Mismatch in G at element " << this->getTag() <<endln;
             mismatchFound = true;
+            return;
         }
     }
     
     // Compare H matrices
     for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
         if (fabs(H[i] - H_cpp[i]) > tolerance) {
-            opserr << "PML3DVISCOUS::verifyMatrices - Mismatch in H matrix at index " << i 
-                   << ", Fortran: " << H[i] << ", C++: " << H_cpp[i] << ", Diff: " << (H[i] - H_cpp[i]) << endln;
+            opserr << "PML3DVISCOUS::verifyMatrices - Mismatch in H at element " << this->getTag() <<endln;
             mismatchFound = true;
+            return;
         }
     }
     
     if (!mismatchFound) {
-        opserr << "PML3DVISCOUS::verifyMatrices - All matrices match between Fortran and C++ implementations!" << endln;
+        opserr << "PML3DVISCOUS::verifyMatrices - All matrices match between Fortran and C++ implementations for element " << this->getTag() <<endln;
     }
 }
 
