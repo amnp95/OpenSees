@@ -244,6 +244,269 @@ void PML3DVISCOUS::calculateShapeFunctions(const double* xi, int n_nodes, double
 	}
 }
 
+// Implementation of PML parameters calculation function
+void PML3DVISCOUS::calculatePMLParameters(const double* props, double x1, double x2, double x3, double (*pmlAlphaBeta)[3]) {
+    // Extract properties
+    double E = props[0];
+    double xnu = props[1];
+    double rho = props[2];
+    int eleTypeArg = (int)props[3];
+    double PML_L = props[4];
+    double afp = props[5];
+    double PML_Rcoef = props[6];
+    double RD_half_width_x = props[7];
+    double RD_half_width_y = props[8];
+    double RD_depth = props[9];
+    
+    // Initialize normal vectors and reference coordinates
+    double n1 = 0.0;
+    double n2 = 0.0;
+    double n3 = 0.0;
+    double x1_0 = 0.0;
+    double x2_0 = 0.0;
+    double x3_0 = 0.0;
+    
+    // Calculate reference dilatational wave velocity
+    double cp_ref = sqrt(E * (1.0 - xnu) / rho / (1.0 + xnu) / (1.0 - 2.0 * xnu));
+    
+    // Determine element type based on coordinates
+    if (x2 < -RD_half_width_y) {
+        if (x1 < -RD_half_width_x) {
+            if (x3 < -RD_depth) {
+                eleTypeArg = 15;  // Left-bottom corner PML
+            } else {
+                eleTypeArg = 6;   // Left-bottom column PML
+            }
+        } else if (x1 < RD_half_width_x) {
+            if (x3 < -RD_depth) {
+                eleTypeArg = 11;  // Bottom column PML
+            } else {
+                eleTypeArg = 2;   // Bottom surface PML
+            }
+        } else {
+            if (x3 < -RD_depth) {
+                eleTypeArg = 16;  // Right-bottom corner PML
+            } else {
+                eleTypeArg = 7;   // Right-bottom column PML
+            }
+        }
+    } else if (x2 < RD_half_width_y) {
+        if (x1 < -RD_half_width_x) {
+            if (x3 < -RD_depth) {
+                eleTypeArg = 14;  // Left column PML
+            } else {
+                eleTypeArg = 5;   // Left surface PML
+            }
+        } else if (x1 < RD_half_width_x) {
+            if (x3 < -RD_depth) {
+                eleTypeArg = 10;  // Bottom surface PML
+            } else {
+                eleTypeArg = 1;   // Regular domain
+            }
+        } else {
+            if (x3 < -RD_depth) {
+                eleTypeArg = 12;  // Right column PML
+            } else {
+                eleTypeArg = 3;   // Right surface PML
+            }
+        }
+    } else {
+        if (x1 < -RD_half_width_x) {
+            if (x3 < -RD_depth) {
+                eleTypeArg = 18;  // Left-top corner PML
+            } else {
+                eleTypeArg = 9;   // Left-top column PML
+            }
+        } else if (x1 < RD_half_width_x) {
+            if (x3 < -RD_depth) {
+                eleTypeArg = 13;  // Top column PML
+            } else {
+                eleTypeArg = 4;   // Top surface PML
+            }
+        } else {
+            if (x3 < -RD_depth) {
+                eleTypeArg = 17;  // Right-top corner PML
+            } else {
+                eleTypeArg = 8;   // Right-top column PML
+            }
+        }
+    }
+    
+    // Set normal vectors and reference coordinates based on element type
+    switch (eleTypeArg) {
+        case 1:  // Regular domain
+            n1 = 0.0;
+            n2 = 0.0;
+            n3 = 0.0;
+            x1_0 = 0.0;
+            x2_0 = 0.0;
+            x3_0 = 0.0;
+            break;
+        case 2:  // Bottom surface PML
+            n1 = 0.0;
+            n2 = -1.0;
+            n3 = 0.0;
+            x1_0 = 0.0;
+            x2_0 = -1.0 * RD_half_width_y;
+            x3_0 = 0.0;
+            break;
+        case 3:  // Right surface PML
+            n1 = 1.0;
+            n2 = 0.0;
+            n3 = 0.0;
+            x1_0 = 1.0 * RD_half_width_x;
+            x2_0 = 0.0;
+            x3_0 = 0.0;
+            break;
+        case 4:  // Top surface PML
+            n1 = 0.0;
+            n2 = 1.0;
+            n3 = 0.0;
+            x1_0 = 0.0;
+            x2_0 = 1.0 * RD_half_width_y;
+            x3_0 = 0.0;
+            break;
+        case 5:  // Left surface PML
+            n1 = -1.0;
+            n2 = 0.0;
+            n3 = 0.0;
+            x1_0 = -1.0 * RD_half_width_x;
+            x2_0 = 0.0;
+            x3_0 = 0.0;
+            break;
+        case 6:  // Left-bottom column PML
+            n1 = -1.0;
+            n2 = -1.0;
+            n3 = 0.0;
+            x1_0 = -1.0 * RD_half_width_x;
+            x2_0 = -1.0 * RD_half_width_y;
+            x3_0 = 0.0;
+            break;
+        case 7:  // Right-bottom column PML
+            n1 = 1.0;
+            n2 = -1.0;
+            n3 = 0.0;
+            x1_0 = 1.0 * RD_half_width_x;
+            x2_0 = -1.0 * RD_half_width_y;
+            x3_0 = 0.0;
+            break;
+        case 8:  // Right-top column PML
+            n1 = 1.0;
+            n2 = 1.0;
+            n3 = 0.0;
+            x1_0 = 1.0 * RD_half_width_x;
+            x2_0 = 1.0 * RD_half_width_y;
+            x3_0 = 0.0;
+            break;
+        case 9:  // Left-top column PML
+            n1 = -1.0;
+            n2 = 1.0;
+            n3 = 0.0;
+            x1_0 = -1.0 * RD_half_width_x;
+            x2_0 = 1.0 * RD_half_width_y;
+            x3_0 = 0.0;
+            break;
+        case 10:  // Bottom surface PML
+            n1 = 0.0;
+            n2 = 0.0;
+            n3 = -1.0;
+            x1_0 = 0.0;
+            x2_0 = 0.0;
+            x3_0 = -1.0 * RD_depth;
+            break;
+        case 11:  // Bottom column PML
+            n1 = 0.0;
+            n2 = -1.0;
+            n3 = -1.0;
+            x1_0 = 0.0;
+            x2_0 = -1.0 * RD_half_width_y;
+            x3_0 = -1.0 * RD_depth;
+            break;
+        case 12:  // Right column PML
+            n1 = 1.0;
+            n2 = 0.0;
+            n3 = -1.0;
+            x1_0 = 1.0 * RD_half_width_x;
+            x2_0 = 0.0;
+            x3_0 = -1.0 * RD_depth;
+            break;
+        case 13:  // Top column PML
+            n1 = 0.0;
+            n2 = 1.0;
+            n3 = -1.0;
+            x1_0 = 0.0;
+            x2_0 = 1.0 * RD_half_width_y;
+            x3_0 = -1.0 * RD_depth;
+            break;
+        case 14:  // Left column PML
+            n1 = -1.0;
+            n2 = 0.0;
+            n3 = -1.0;
+            x1_0 = -1.0 * RD_half_width_x;
+            x2_0 = 0.0;
+            x3_0 = -1.0 * RD_depth;
+            break;
+        case 15:  // Left-bottom corner PML
+            n1 = -1.0;
+            n2 = -1.0;
+            n3 = -1.0;
+            x1_0 = -1.0 * RD_half_width_x;
+            x2_0 = -1.0 * RD_half_width_y;
+            x3_0 = -1.0 * RD_depth;
+            break;
+        case 16:  // Right-bottom corner PML
+            n1 = 1.0;
+            n2 = -1.0;
+            n3 = -1.0;
+            x1_0 = 1.0 * RD_half_width_x;
+            x2_0 = -1.0 * RD_half_width_y;
+            x3_0 = -1.0 * RD_depth;
+            break;
+        case 17:  // Right-top corner PML
+            n1 = 1.0;
+            n2 = 1.0;
+            n3 = -1.0;
+            x1_0 = 1.0 * RD_half_width_x;
+            x2_0 = 1.0 * RD_half_width_y;
+            x3_0 = -1.0 * RD_depth;
+            break;
+        case 18:  // Left-top corner PML
+            n1 = -1.0;
+            n2 = 1.0;
+            n3 = -1.0;
+            x1_0 = -1.0 * RD_half_width_x;
+            x2_0 = 1.0 * RD_half_width_y;
+            x3_0 = -1.0 * RD_depth;
+            break;
+        default:
+            break;
+    }
+    
+    // Calculate PML parameters
+    if (eleTypeArg == 1) {
+        // Regular domain - no stretching
+        for (int i = 0; i < 2; i++) {
+            for (int j = 0; j < 3; j++) {
+                pmlAlphaBeta[i][j] = 0.0;
+            }
+        }
+    } else {
+        // PML domain - calculate stretching parameters
+        double PML_b = PML_L / 1.0;
+        double alpha_0 = ((afp + 1.0) * PML_b) / (2.0 * PML_L) * log10(1.0 / PML_Rcoef);
+        double beta_0 = ((afp + 1.0) * cp_ref) / (2.0 * PML_L) * log10(1.0 / PML_Rcoef);
+        
+        // Primary stretching in normal direction
+        pmlAlphaBeta[0][0] = 1.0 + alpha_0 * pow(((x1 - x1_0) * n1 / PML_L), afp);
+        pmlAlphaBeta[0][1] = 1.0 + alpha_0 * pow(((x2 - x2_0) * n2 / PML_L), afp);
+        pmlAlphaBeta[0][2] = 1.0 + alpha_0 * pow(((x3 - x3_0) * n3 / PML_L), afp);
+        
+        pmlAlphaBeta[1][0] = beta_0 * pow(((x1 - x1_0) * n1 / PML_L), afp);
+        pmlAlphaBeta[1][1] = beta_0 * pow(((x2 - x2_0) * n2 / PML_L), afp);
+        pmlAlphaBeta[1][2] = beta_0 * pow(((x3 - x3_0) * n3 / PML_L), afp);
+    }
+}
+
 // =======================================================================
 // null constructor
 // =======================================================================

@@ -143,6 +143,9 @@ private:
     // Add static function to calculate shape functions and derivatives
     static void calculateShapeFunctions(const double* xi, int n_nodes, double* N, double (*dNdxi)[3]);
     
+    // Add function to calculate PML alpha and beta parameters
+    static void calculatePMLParameters(const double* props, double x1, double x2, double x3, double (*pmlAlphaBeta)[3]);
+    
 	Vector ubart; 				                    // ubar at time t 
     Vector ubarbart;                                // ubarbar at time t
 	Vector ubar; 				                    // ubar at time t+dt
