@@ -102,8 +102,147 @@ double  PML3DVISCOUS::beta = 0.;
 double  PML3DVISCOUS::gamma = 0.;
 double  PML3DVISCOUS::dt = 0.;
 int     PML3DVISCOUS::eleCount = 0;
-// int     PML3DVISCOUS::numberOfElements = 0;
 
+// Initialize integration points and weights
+double  PML3DVISCOUS::xi[3][64] = {{0.0}};
+double  PML3DVISCOUS::w[64] = {0.0};
+bool    PML3DVISCOUS::integrationInitialized = false;
+
+// Implementation of the integration points and weights initialization function
+void PML3DVISCOUS::initializeIntegrationPointsAndWeights(int n_points, int n_nodes) {
+    // If already initialized, return
+    if (integrationInitialized) return;
+    // Reset arrays
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 64; j++) {
+            xi[i][j] = 0.0;
+        }
+    }
+    for (int i = 0; i < 64; i++) {
+        w[i] = 0.0;
+    }
+    // Hexahedral elements
+    if (n_nodes == 8) {
+        if (n_points == 1) {
+            xi[0][0] = 0.0;
+            xi[1][0] = 0.0;
+            xi[2][0] = 0.0;
+            w[0] = 8.0;
+        }
+        else if (n_points == 8) {
+            double x1D[2] = {-0.5773502692, 0.5773502692};
+            
+            int n = 0;
+            for (int k = 0; k < 2; k++) {
+                for (int j = 0; j < 2; j++) {
+                    for (int i = 0; i < 2; i++) {
+                        xi[0][n] = x1D[i];
+                        xi[1][n] = x1D[j];
+                        xi[2][n] = x1D[k];
+                        w[n] = 1.0;
+                        n++;
+                    }
+                }
+            }
+        }
+        else if (n_points == 27) {
+            double x1D[3] = {-0.7745966692, 0.0, 0.7745966692};
+            double w1D[3] = {0.5555555555, 0.888888888, 0.55555555555};
+            
+            int n = 0;
+            for (int k = 0; k < 3; k++) {
+                for (int j = 0; j < 3; j++) {
+                    for (int i = 0; i < 3; i++) {
+                        xi[0][n] = x1D[i];
+                        xi[1][n] = x1D[j];
+                        xi[2][n] = x1D[k];
+                        w[n] = w1D[i] * w1D[j] * w1D[k];
+                        n++;
+                    }
+                }
+            }
+        }
+        else if (n_points == 64) {
+            double x1D[4] = {0.8611363115940526, 0.3399810435848563, 
+                            -0.3399810435848563, -0.8611363115940526};
+            double w1D[4] = {0.3478548451374538, 0.6521451548625461, 
+                             0.6521451548625461, 0.3478548451374538};
+            
+            int n = 0;
+            for (int k = 0; k < 4; k++) {
+                for (int j = 0; j < 4; j++) {
+                    for (int i = 0; i < 4; i++) {
+                        xi[0][n] = x1D[i];
+                        xi[1][n] = x1D[j];
+                        xi[2][n] = x1D[k];
+                        w[n] = w1D[i] * w1D[j] * w1D[k];
+                        n++;
+                    }
+                }
+            }
+        }
+    }
+    integrationInitialized = true;
+}
+
+// Implementation of shape functions calculation
+void PML3DVISCOUS::calculateShapeFunctions(const double* xi, int n_nodes, double* N, double (*dNdxi)[3]) {
+    // Local variables
+    double xi4;
+    
+    // Clear arrays
+    for (int i = 0; i < n_nodes; i++) {
+        N[i] = 0.0;
+        for (int j = 0; j < 3; j++) {
+            dNdxi[i][j] = 0.0;
+        }
+    }
+    if (n_nodes == 8) {  // Linear hexahedral
+        N[0] = (1.0 - xi[0]) * (1.0 - xi[1]) * (1.0 - xi[2]) / 8.0;
+        N[1] = (1.0 + xi[0]) * (1.0 - xi[1]) * (1.0 - xi[2]) / 8.0;
+        N[2] = (1.0 + xi[0]) * (1.0 + xi[1]) * (1.0 - xi[2]) / 8.0;
+        N[3] = (1.0 - xi[0]) * (1.0 + xi[1]) * (1.0 - xi[2]) / 8.0;
+        N[4] = (1.0 - xi[0]) * (1.0 - xi[1]) * (1.0 + xi[2]) / 8.0;
+        N[5] = (1.0 + xi[0]) * (1.0 - xi[1]) * (1.0 + xi[2]) / 8.0;
+        N[6] = (1.0 + xi[0]) * (1.0 + xi[1]) * (1.0 + xi[2]) / 8.0;
+        N[7] = (1.0 - xi[0]) * (1.0 + xi[1]) * (1.0 + xi[2]) / 8.0;
+        
+        dNdxi[0][0] = -(1.0 - xi[1]) * (1.0 - xi[2]) / 8.0;
+        dNdxi[0][1] = -(1.0 - xi[0]) * (1.0 - xi[2]) / 8.0;
+        dNdxi[0][2] = -(1.0 - xi[0]) * (1.0 - xi[1]) / 8.0;
+        
+        dNdxi[1][0] = (1.0 - xi[1]) * (1.0 - xi[2]) / 8.0;
+        dNdxi[1][1] = -(1.0 + xi[0]) * (1.0 - xi[2]) / 8.0;
+        dNdxi[1][2] = -(1.0 + xi[0]) * (1.0 - xi[1]) / 8.0;
+        
+        dNdxi[2][0] = (1.0 + xi[1]) * (1.0 - xi[2]) / 8.0;
+        dNdxi[2][1] = (1.0 + xi[0]) * (1.0 - xi[2]) / 8.0;
+        dNdxi[2][2] = -(1.0 + xi[0]) * (1.0 + xi[1]) / 8.0;
+        
+        dNdxi[3][0] = -(1.0 + xi[1]) * (1.0 - xi[2]) / 8.0;
+        dNdxi[3][1] = (1.0 - xi[0]) * (1.0 - xi[2]) / 8.0;
+        dNdxi[3][2] = -(1.0 - xi[0]) * (1.0 + xi[1]) / 8.0;
+        
+        dNdxi[4][0] = -(1.0 - xi[1]) * (1.0 + xi[2]) / 8.0;
+        dNdxi[4][1] = -(1.0 - xi[0]) * (1.0 + xi[2]) / 8.0;
+        dNdxi[4][2] = (1.0 - xi[0]) * (1.0 - xi[1]) / 8.0;
+        
+        dNdxi[5][0] = (1.0 - xi[1]) * (1.0 + xi[2]) / 8.0;
+        dNdxi[5][1] = -(1.0 + xi[0]) * (1.0 + xi[2]) / 8.0;
+        dNdxi[5][2] = (1.0 + xi[0]) * (1.0 - xi[1]) / 8.0;
+        
+        dNdxi[6][0] = (1.0 + xi[1]) * (1.0 + xi[2]) / 8.0;
+        dNdxi[6][1] = (1.0 + xi[0]) * (1.0 + xi[2]) / 8.0;
+        dNdxi[6][2] = (1.0 + xi[0]) * (1.0 + xi[1]) / 8.0;
+        
+        dNdxi[7][0] = -(1.0 + xi[1]) * (1.0 + xi[2]) / 8.0;
+        dNdxi[7][1] = (1.0 - xi[0]) * (1.0 + xi[2]) / 8.0;
+        dNdxi[7][2] = (1.0 - xi[0]) * (1.0 + xi[1]) / 8.0;
+    }
+	else {
+		opserr << "WARNING: PML3DVISCOUS element only supports Hexahedral elements with 8 nodes\n";
+	}
+}
 
 // =======================================================================
 // null constructor
@@ -116,9 +255,14 @@ PML3DVISCOUS::PML3DVISCOUS()
     ubarbar(PML3DVISCOUS_NUM_DOF),
     ubarbart(PML3DVISCOUS_NUM_DOF)
 {
-	for (int i = 0; i < PML3DVISCOUS_NUM_NODES; i++) {
-		nodePointers[i] = 0;
-	}
+    // Initialize integration points and weights with default values
+    if (!integrationInitialized) {
+        initializeIntegrationPointsAndWeights(27, PML3DVISCOUS_NUM_NODES); // Default to 27-point integration
+    }
+    
+    for (int i = 0; i < PML3DVISCOUS_NUM_NODES; i++) {
+        nodePointers[i] = 0;
+    }
 	dt = 0;
 	ubar.Zero();
 	ubart.Zero();
@@ -145,8 +289,19 @@ PML3DVISCOUS::PML3DVISCOUS(int tag, int* nodeTags, double* nemwarks, double* ele
 {
 	eleCount++;
 	if (eleCount == 1) {
-		opserr << "Perfectly Matched Layer 3D (PMLVISCOUS) element -  Written: W. Zhang, E. Taciroglu, A. Pakzad, P. Arduino, UCLA, UCLA, U.Washington, U.Washington\n ";
+		opserr << "Perfectly Matched Layer 3D (PMLVISCOUS) element -  Written: W. Zhang, E. Taciroglu, A. Pakzad, P. Arduino, UCLA, U.Washington\n ";
 	}
+    
+    // Initialize integration points and weights with default values
+    if (!integrationInitialized) {
+        // Check if afp parameter is less than 3.0 for integration point selection
+        if (eleData[5] < 3.0) { // afp parameter is at index 5
+            initializeIntegrationPointsAndWeights(27, PML3DVISCOUS_NUM_NODES);
+        } else {
+            initializeIntegrationPointsAndWeights(64, PML3DVISCOUS_NUM_NODES);
+        }
+    }
+    
 	// initialize node pointers
 	for (int i = 0; i < PML3DVISCOUS_NUM_NODES; i++) {
 		connectedExternalNodes(i) = nodeTags[i];

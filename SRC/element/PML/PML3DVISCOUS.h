@@ -130,6 +130,19 @@ private:
 	static Vector resid; 						    // residual vector
 	static Matrix mass;						        // mass matrix
 	static Matrix damping;	 					    // damping matrix
+	
+	// Add static variables for integration points and weights
+    static double xi[3][64];                        // integration points coordinates
+    static double w[64];                            // integration weights
+    static int numIntegrationPoints;                // number of integration points
+    static bool integrationInitialized;             // flag to check if integration points are initialized
+    
+    // Add static function to initialize integration points and weights
+    static void initializeIntegrationPointsAndWeights(int n_points, int n_nodes);
+    
+    // Add static function to calculate shape functions and derivatives
+    static void calculateShapeFunctions(const double* xi, int n_nodes, double* N, double (*dNdxi)[3]);
+    
 	Vector ubart; 				                    // ubar at time t 
     Vector ubarbart;                                // ubarbar at time t
 	Vector ubar; 				                    // ubar at time t+dt
