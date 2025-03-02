@@ -1761,7 +1761,7 @@ CMATRX(1:NDOFEL,1:NDOFEL) = CMATRX(1:NDOFEL,1:NDOFEL) + Damp_alpha*MMATRX(1:NDOF
       double precision E, xnu, rho, PML_L, afp, PML_Rcoef
       double precision x1_0, x2_0, x3_0, n1, n2, n3, cp_ref, PML_b
       double precision alpha_0, beta_0
-      double precision RD_half_width_x, RD_half_width_y, RD_depth
+      double precision RD_half_width_x, RD_half_width_y, RD_depth, proportion_factor
 
       ! Add a new parameter for the proportion factor in M-PML
       proportion_factor = 0.1d0  ! Can be tuned (typical values range from 0.1 to 0.5)
@@ -2035,7 +2035,7 @@ CMATRX(1:NDOFEL,1:NDOFEL) = CMATRX(1:NDOFEL,1:NDOFEL) + Damp_alpha*MMATRX(1:NDOF
       end select
 
 
-      
+
       ! Modified section for M-PML
       IF (EleType_arg .EQ.1) THEN
          ! Regular domain - no stretching
