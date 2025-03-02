@@ -972,7 +972,7 @@ void PML3DVISCOUS::calculatePMLMatrices(const double* props, const double* coord
 }
 
 // Implementation of the main function to calculate PML matrices (now using static matrices)
-void PML3DVISCOUS::calculatePMLMatrices(const double* props, const double* coords, int ndofel, int mcrd, int nnode, int lflags) {
+void PML3DVISCOUS::calculateCppMatrices(const double* props, const double* coords, int ndofel, int mcrd, int nnode, int lflags) {
     // Initialize constants
     const double ZERO = 0.0;
     const double HALF = 0.5;
