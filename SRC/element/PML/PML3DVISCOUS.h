@@ -146,6 +146,10 @@ private:
     // Add function to calculate PML alpha and beta parameters
     static void calculatePMLParameters(const double* props, double x1, double x2, double x3, double (*pmlAlphaBeta)[3]);
     
+    // Add function to calculate the matrices for PML element
+    void calculatePMLMatrices(const double* props, const double* coords, double* M, double* C, double* K, 
+                            double* G, double* H, int ndofel, int mcrd, int nnode, int lflags);
+    
 	Vector ubart; 				                    // ubar at time t 
     Vector ubarbart;                                // ubarbar at time t
 	Vector ubar; 				                    // ubar at time t+dt
