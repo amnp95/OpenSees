@@ -1039,7 +1039,7 @@ void PML3DVISCOUS::calculatePMLMatrices(const double* props, const double* coord
     
     double Phi_x[8] = {0.0};
     double Phi_y[8] = {0.0};
-    double Phi_z[8] = {0.0}};
+    double Phi_z[8] = {0.0}; // Fixed extra brace
     
     double M_RD[24][24] = {{0.0}};
     double C_RD[24][24] = {{0.0}};
@@ -1616,10 +1616,11 @@ void  PML3DVISCOUS::setDomain(Domain* theDomain)
 		G[i] = 0.0;
 		H[i] = 0.0;
 	}
-	pml3d_(M, C, K, G, H, &NDOFEL, props, coords, &MCRD, &NNODE, &LFLAGS);
-	
-	// Calculate matrices using C++ implementation
-    calculatePMLMatrices(props, coords, NDOFEL, MCRD, NNODE, LFLAGS);
+	// Call Fortran function
+    pml3d_(M, C, K, G, H, &NDOFEL, props, coords, &MCRD, &NNODE, &LFLAGS);
+    
+    // Calculate matrices using C++ implementation
+    calculateCppMatrices(props, coords, NDOFEL, MCRD, NNODE, LFLAGS);
     
     // Verify the matrices
     verifyMatrices();

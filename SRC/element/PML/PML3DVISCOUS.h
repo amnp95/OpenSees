@@ -146,9 +146,15 @@ private:
     // Add function to calculate PML alpha and beta parameters
     static void calculatePMLParameters(const double* props, double x1, double x2, double x3, double (*pmlAlphaBeta)[3]);
     
-    // Add function to calculate the matrices for PML element
-    void calculatePMLMatrices(const double* props, const double* coords, double* M, double* C, double* K, 
-                            double* G, double* H, int ndofel, int mcrd, int nnode, int lflags);
+    // Modify the function signature to match implementation
+    static void calculatePMLMatrices(const double* props, const double* coords, double* M, double* C, double* K, 
+                                    double* G, double* H, int ndofel, int mcrd, int nnode, int lflags);
+    
+    // Add separate static function for C++ implementation
+    static void calculateCppMatrices(const double* props, const double* coords, int ndofel, int mcrd, int nnode, int lflags);
+    
+    // Add function to verify matrices from Fortran and C++
+    void verifyMatrices();
     
 	Vector ubart; 				                    // ubar at time t 
     Vector ubarbart;                                // ubarbar at time t
