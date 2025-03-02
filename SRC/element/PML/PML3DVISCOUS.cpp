@@ -190,6 +190,15 @@ void PML3DVISCOUS::initializeIntegrationPointsAndWeights(int n_points, int n_nod
         }
     }
     integrationInitialized = true;
+
+
+    // # if the element tag is equal to 1, print the integration points and weights
+    if (eleCount == 1) {
+        opserr << "Integration points and weights:\n";
+        for (int i = 0; i < n_points; i++) {
+            opserr << "Point " << i + 1 << ": (" << xi[0][i] << ", " << xi[1][i] << ", " << xi[2][i] << ") - Weight: " << w[i] << "\n";
+        }
+    }
 }
 
 // Implementation of shape functions calculation
@@ -1171,76 +1180,7 @@ void  PML3DVISCOUS::setDomain(Domain* theDomain)
     verifyMatrices();
     
     dt = theDomain->getDT();
-
-	// // make C zero 
-	for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
-		// C[i] = 0.0;
-		// K[i] = 0.0;
-		// M[i] = 0.0;
-		// G[i] = 0.0;
-		// H[i] = 0.0;
-	}
-
-
-	std::ofstream myfile;
-	std::string filename;
 	int tag = this->getTag();
-
-	// // save M matrix in a file
-	// filename = "./PML/M" + std::to_string(tag) + ".mat";
-	// myfile.open(filename);
-	// for (int i = 0; i < PML3DVISCOUS_NUM_DOF; i++) {
-	// 	for (int j = 0; j < PML3DVISCOUS_NUM_DOF; j++) {
-	// 		myfile << M[i*PML3DVISCOUS_NUM_DOF + j] << " ";
-	// 	}
-	// 	myfile << "\n";
-	// }
-	// myfile.close();
-
-	// // save C matrix in a file
-	// filename = "./PML/C" + std::to_string(tag) + ".mat";
-	// myfile.open(filename);
-	// for (int i = 0; i < PML3DVISCOUS_NUM_DOF; i++) {
-	// 	for (int j = 0; j < PML3DVISCOUS_NUM_DOF; j++) {
-	// 		myfile << C[i*PML3DVISCOUS_NUM_DOF + j] << " ";
-	// 	}
-	// 	myfile << "\n";
-	// }
-	// myfile.close();
-
-	// // save K matrix in a file
-	// filename = "./PML/K" + std::to_string(tag) + ".mat";
-	// myfile.open(filename);
-	// for (int i = 0; i < PML3DVISCOUS_NUM_DOF; i++) {
-	// 	for (int j = 0; j < PML3DVISCOUS_NUM_DOF; j++) {
-	// 		myfile << K[i*PML3DVISCOUS_NUM_DOF + j] << " ";
-	// 	}
-	// 	myfile << "\n";
-	// }
-	// myfile.close();
-
-	// // save G matrix in a file
-	// filename = "./PML/G" + std::to_string(tag) + ".mat";
-	// myfile.open(filename);
-	// for (int i = 0; i < PML3DVISCOUS_NUM_DOF; i++) {
-	// 	for (int j = 0; j < PML3DVISCOUS_NUM_DOF; j++) {
-	// 		myfile << G[i*PML3DVISCOUS_NUM_DOF + j] << " ";
-	// 	}
-	// 	myfile << "\n";
-	// }
-	// myfile.close();
-
-	// save H matrix in a file
-	// filename = "./PML/H" + std::to_string(tag) + ".mat";
-	// myfile.open(filename);
-	// for (int i = 0; i < PML3DVISCOUS_NUM_DOF; i++) {
-	// 	for (int j = 0; j < PML3DVISCOUS_NUM_DOF; j++) {
-	// 		myfile << H[i*PML3DVISCOUS_NUM_DOF + j] << " ";
-	// 	}
-	// 	myfile << "\n";
-	// }
-	// myfile.close();
-
 }
 
 // =======================================================================
