@@ -1465,29 +1465,29 @@
 
       end select
 
+      
+      
+      ! Modified section for M-PML
+      IF (EleType_arg .EQ.1) THEN
+         ! Regular domain - no stretching
+         PML_alpha_beta(1:2,1:3) = 0.d0
+      ELSE
+         ! First calculate standard PML stretching in the normal direction
+         ! This part is similar to your existing code
+         PML_b = PML_L / 1.d0
+         alpha_0 = ((afp+1)*PML_b) / (2.d0*PML_L)*LOG10(1.d0/PML_Rcoef)
+         beta_0 = ((afp+1)*cp_ref) / (2.d0*PML_L)*LOG10(1.d0/PML_Rcoef)
+         
+         ! Primary stretching in normal direction
+         PML_alpha_beta(1,1) = 1.d0 + alpha_0*((x1-x1_0)*n1/PML_L)**afp 
+         PML_alpha_beta(1,2) = 1.d0 + alpha_0*((x2-x2_0)*n2/PML_L)**afp
+         PML_alpha_beta(1,3) = 1.d0 + alpha_0*((x3-x3_0)*n3/PML_L)**afp
+         
+         PML_alpha_beta(2,1) = beta_0*((x1-x1_0)*n1/PML_L)**afp 
+         PML_alpha_beta(2,2) = beta_0*((x2-x2_0)*n2/PML_L)**afp
+         PML_alpha_beta(2,3) = beta_0*((x3-x3_0)*n3/PML_L)**afp
+      ENDIF
       end subroutine PML_alpha_beta_function
-
-
-      ! ! Modified section for M-PML
-      ! IF (EleType_arg .EQ.1) THEN
-      !    ! Regular domain - no stretching
-      !    PML_alpha_beta(1:2,1:3) = 0.d0
-      ! ELSE
-      !    ! First calculate standard PML stretching in the normal direction
-      !    ! This part is similar to your existing code
-      !    PML_b = PML_L / 1.d0
-      !    alpha_0 = ((afp+1)*PML_b) / (2.d0*PML_L)*LOG10(1.d0/PML_Rcoef)
-      !    beta_0 = ((afp+1)*cp_ref) / (2.d0*PML_L)*LOG10(1.d0/PML_Rcoef)
-         
-      !    ! Primary stretching in normal direction
-      !    PML_alpha_beta(1,1) = 1.d0 + alpha_0*((x1-x1_0)*n1/PML_L)**afp 
-      !    PML_alpha_beta(1,2) = 1.d0 + alpha_0*((x2-x2_0)*n2/PML_L)**afp
-      !    PML_alpha_beta(1,3) = 1.d0 + alpha_0*((x3-x3_0)*n3/PML_L)**afp
-         
-      !    PML_alpha_beta(2,1) = beta_0*((x1-x1_0)*n1/PML_L)**afp 
-      !    PML_alpha_beta(2,2) = beta_0*((x2-x2_0)*n2/PML_L)**afp
-      !    PML_alpha_beta(2,3) = beta_0*((x3-x3_0)*n3/PML_L)**afp
-
       
       !    IF (abs(n1) .GT. 0.5d0) THEN
       !       ! X-directed PML layer
