@@ -1763,6 +1763,9 @@ CMATRX(1:NDOFEL,1:NDOFEL) = CMATRX(1:NDOFEL,1:NDOFEL) + Damp_alpha*MMATRX(1:NDOF
       double precision alpha_0, beta_0
       double precision RD_half_width_x, RD_half_width_y, RD_depth
 
+      ! Add a new parameter for the proportion factor in M-PML
+      proportion_factor = 0.1d0  ! Can be tuned (typical values range from 0.1 to 0.5)
+
       E = PROPS(1)
       xnu = PROPS(2)
       rho = PROPS(3)
@@ -2031,24 +2034,60 @@ CMATRX(1:NDOFEL,1:NDOFEL) = CMATRX(1:NDOFEL,1:NDOFEL) + Damp_alpha*MMATRX(1:NDOF
 
       end select
 
-      PML_b = PML_L / 1.d0   !characteristic length (average element size in the PML domain) 
+
       
-      alpha_0 = ((afp+1)*PML_b) / (2.d0*PML_L )*LOG10(1.d0 / PML_Rcoef)
-      beta_0 = ((afp+1)*cp_ref) / (2.d0*PML_L )*LOG10(1.d0 / PML_Rcoef)
-      
-!      alpha_0 = 5.d0
-!      beta_0 = 800.d0
-
-      PML_alpha_beta(1,1) = 1.d0 + alpha_0*((x1 -x1_0) * n1 /PML_L)**afp 
-      PML_alpha_beta(1,2) = 1.d0 + alpha_0*((x2 -x2_0) * n2 /PML_L)**afp
-      PML_alpha_beta(1,3) = 1.d0 + alpha_0*((x3 -x3_0) * n3 /PML_L)**afp
-
-      PML_alpha_beta(2,1) = beta_0*((x1 -x1_0) * n1 /PML_L)**afp 
-      PML_alpha_beta(2,2) = beta_0*((x2 -x2_0) * n2 /PML_L)**afp
-      PML_alpha_beta(2,3) = beta_0*((x3 -x3_0) * n3 /PML_L)**afp
-
+      ! Modified section for M-PML
       IF (EleType_arg .EQ.1) THEN
-        PML_alpha_beta(1:2,1:3) = 0.d0
-      end if
+         ! Regular domain - no stretching
+         PML_alpha_beta(1:2,1:3) = 0.d0
+      ELSE
+         ! First calculate standard PML stretching in the normal direction
+         ! This part is similar to your existing code
+         PML_b = PML_L / 1.d0
+         alpha_0 = ((afp+1)*PML_b) / (2.d0*PML_L)*LOG10(1.d0/PML_Rcoef)
+         beta_0 = ((afp+1)*cp_ref) / (2.d0*PML_L)*LOG10(1.d0/PML_Rcoef)
+         
+         ! Primary stretching in normal direction
+         PML_alpha_beta(1,1) = 1.d0 + alpha_0*((x1-x1_0)*n1/PML_L)**afp 
+         PML_alpha_beta(1,2) = 1.d0 + alpha_0*((x2-x2_0)*n2/PML_L)**afp
+         PML_alpha_beta(1,3) = 1.d0 + alpha_0*((x3-x3_0)*n3/PML_L)**afp
+         
+         PML_alpha_beta(2,1) = beta_0*((x1-x1_0)*n1/PML_L)**afp 
+         PML_alpha_beta(2,2) = beta_0*((x2-x2_0)*n2/PML_L)**afp
+         PML_alpha_beta(2,3) = beta_0*((x3-x3_0)*n3/PML_L)**afp
 
+      
+         IF (abs(n1) .GT. 0.5d0) THEN
+            ! X-directed PML layer
+            IF (PML_alpha_beta(1,1) .GT. 1.d0) THEN
+               ! Add proportional stretching in y and z directions
+               PML_alpha_beta(1,2) = 1.d0 + proportion_factor*(PML_alpha_beta(1,1)-1.d0)
+               PML_alpha_beta(1,3) = 1.d0 + proportion_factor*(PML_alpha_beta(1,1)-1.d0)
+               PML_alpha_beta(2,2) = proportion_factor*PML_alpha_beta(2,1)
+               PML_alpha_beta(2,3) = proportion_factor*PML_alpha_beta(2,1)
+            ENDIF
+         ENDIF
+
+         IF (abs(n2) .GT. 0.5d0) THEN
+            ! Y-directed PML layer
+            IF (PML_alpha_beta(1,2) .GT. 1.d0) THEN
+               ! Add proportional stretching in x and z directions
+               PML_alpha_beta(1,1) = 1.d0 + proportion_factor*(PML_alpha_beta(1,2)-1.d0)
+               PML_alpha_beta(1,3) = 1.d0 + proportion_factor*(PML_alpha_beta(1,2)-1.d0)
+               PML_alpha_beta(2,1) = proportion_factor*PML_alpha_beta(2,2)
+               PML_alpha_beta(2,3) = proportion_factor*PML_alpha_beta(2,2)
+            ENDIF
+         ENDIF
+
+         IF (abs(n3) .GT. 0.5d0) THEN
+            ! Z-directed PML layer
+            IF (PML_alpha_beta(1,3) .GT. 1.d0) THEN
+               ! Add proportional stretching in x and y directions
+               PML_alpha_beta(1,1) = 1.d0 + proportion_factor*(PML_alpha_beta(1,3)-1.d0)
+               PML_alpha_beta(1,2) = 1.d0 + proportion_factor*(PML_alpha_beta(1,3)-1.d0)
+               PML_alpha_beta(2,1) = proportion_factor*PML_alpha_beta(2,3)
+               PML_alpha_beta(2,2) = proportion_factor*PML_alpha_beta(2,3)
+            ENDIF
+         ENDIF
+      END IF
       end subroutine PML_alpha_beta_function
