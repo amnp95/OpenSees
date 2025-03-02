@@ -1494,6 +1494,12 @@
          PML_alpha_beta(2,2) = beta_0*((x2-x2_0)*n2/PML_L)**afp
          PML_alpha_beta(2,3) = beta_0*((x3-x3_0)*n3/PML_L)**afp
       ENDIF
+      ! print alpha and beta for debugging
+      write(6,*) "for x1 = ",x1," x2 = ",x2," x3 = ",x3
+      write(6,*) "alpha = ",PML_alpha_beta(1,1),PML_alpha_beta(1,2),PML_alpha_beta(1,3)
+      write(6,*) "beta = ",PML_alpha_beta(2,1),PML_alpha_beta(2,2),PML_alpha_beta(2,3)      
+
+
       end subroutine PML_alpha_beta_function
       
       !    IF (abs(n1) .GT. 0.5d0) THEN
