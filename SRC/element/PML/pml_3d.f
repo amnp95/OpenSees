@@ -1760,8 +1760,8 @@ CMATRX(1:NDOFEL,1:NDOFEL) = CMATRX(1:NDOFEL,1:NDOFEL) + Damp_alpha*MMATRX(1:NDOF
 
       double precision E, xnu, rho, PML_L, afp, PML_Rcoef
       double precision x1_0, x2_0, x3_0, n1, n2, n3, cp_ref, PML_b
-      double precision alpha_0, beta_0
-      double precision RD_half_width_x, RD_half_width_y, RD_depth, proportion_factor
+      double precision alpha_0, beta_0, proportion_factor, tmp
+      double precision RD_half_width_x, RD_half_width_y, RD_depth
 
       ! Add a new parameter for the proportion factor in M-PML
       proportion_factor = 0.1d0  ! Can be tuned (typical values range from 0.1 to 0.5)
@@ -2061,10 +2061,12 @@ CMATRX(1:NDOFEL,1:NDOFEL) = CMATRX(1:NDOFEL,1:NDOFEL) + Damp_alpha*MMATRX(1:NDOF
             ! X-directed PML layer
             IF (PML_alpha_beta(1,1) .GT. 1.d0) THEN
                ! Add proportional stretching in y and z directions
-               PML_alpha_beta(1,2) = 1.d0 + proportion_factor*(PML_alpha_beta(1,1)-1.d0)
-               PML_alpha_beta(1,3) = 1.d0 + proportion_factor*(PML_alpha_beta(1,1)-1.d0)
-               PML_alpha_beta(2,2) = proportion_factor*PML_alpha_beta(2,1)
-               PML_alpha_beta(2,3) = proportion_factor*PML_alpha_beta(2,1)
+               tmp = proportion_factor*(PML_alpha_beta(1,1)-1.d0)
+               PML_alpha_beta(1,2) = 1.d0 + tmp
+               PML_alpha_beta(1,3) = 1.d0 + tmp
+               tmp = proportion_factor*PML_alpha_beta(2,1)
+               PML_alpha_beta(2,2) = tmp
+               PML_alpha_beta(2,3) = tmp
             ENDIF
          ENDIF
 
@@ -2072,10 +2074,12 @@ CMATRX(1:NDOFEL,1:NDOFEL) = CMATRX(1:NDOFEL,1:NDOFEL) + Damp_alpha*MMATRX(1:NDOF
             ! Y-directed PML layer
             IF (PML_alpha_beta(1,2) .GT. 1.d0) THEN
                ! Add proportional stretching in x and z directions
-               PML_alpha_beta(1,1) = 1.d0 + proportion_factor*(PML_alpha_beta(1,2)-1.d0)
-               PML_alpha_beta(1,3) = 1.d0 + proportion_factor*(PML_alpha_beta(1,2)-1.d0)
-               PML_alpha_beta(2,1) = proportion_factor*PML_alpha_beta(2,2)
-               PML_alpha_beta(2,3) = proportion_factor*PML_alpha_beta(2,2)
+               tmp = proportion_factor*(PML_alpha_beta(1,2)-1.d0)
+               PML_alpha_beta(1,1) = 1.d0 + tmp
+               PML_alpha_beta(1,3) = 1.d0 + tmp
+               tmp = proportion_factor*PML_alpha_beta(2,2)
+               PML_alpha_beta(2,1) = tmp
+               PML_alpha_beta(2,3) = tmp
             ENDIF
          ENDIF
 
@@ -2083,10 +2087,12 @@ CMATRX(1:NDOFEL,1:NDOFEL) = CMATRX(1:NDOFEL,1:NDOFEL) + Damp_alpha*MMATRX(1:NDOF
             ! Z-directed PML layer
             IF (PML_alpha_beta(1,3) .GT. 1.d0) THEN
                ! Add proportional stretching in x and y directions
-               PML_alpha_beta(1,1) = 1.d0 + proportion_factor*(PML_alpha_beta(1,3)-1.d0)
-               PML_alpha_beta(1,2) = 1.d0 + proportion_factor*(PML_alpha_beta(1,3)-1.d0)
-               PML_alpha_beta(2,1) = proportion_factor*PML_alpha_beta(2,3)
-               PML_alpha_beta(2,2) = proportion_factor*PML_alpha_beta(2,3)
+               tmp = proportion_factor*(PML_alpha_beta(1,3)-1.d0)
+               PML_alpha_beta(1,1) = 1.d0 + tmp
+               PML_alpha_beta(1,2) = 1.d0 + tmp
+               tmp = proportion_factor*PML_alpha_beta(2,3)
+               PML_alpha_beta(2,1) = tmp
+               PML_alpha_beta(2,2) = tmp
             ENDIF
          ENDIF
       END IF
