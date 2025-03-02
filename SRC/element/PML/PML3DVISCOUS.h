@@ -173,9 +173,6 @@ private:
     static double K_cpp[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF];  // Stiffness matrix from C++
     static double G_cpp[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF];  // G matrix from C++
     static double H_cpp[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF];  // H matrix from C++
-    
-    // Add function to verify matrices from Fortran and C++
-    void verifyMatrices();
 };
 
 #endif
