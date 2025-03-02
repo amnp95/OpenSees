@@ -717,7 +717,7 @@ void  PML3DVISCOUS::setDomain(Domain* theDomain)
     pml3d_(M, C, K, G, H, &NDOFEL, props, coords, &MCRD, &NNODE, &LFLAGS);
     
     // Calculate matrices using C++ implementation
-    calculateCppMatrices(props, coords, NDOFEL, MCRD, NNODE, LFLAGS);
+    // calculateCppMatrices(props, coords, NDOFEL, MCRD, NNODE, LFLAGS);
     
     // Verify the matrices
     verifyMatrices();
