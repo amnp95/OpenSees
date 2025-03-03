@@ -653,6 +653,232 @@ void  PML3DVISCOUS::setDomain(Domain* theDomain)
 	int tag = this->getTag();
 }
 
+
+void PML3DVISCOUS::calculateMassMatrix() {
+    // Reset mass matrix
+    for (int i = 0; i < PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF; i++) {
+        M_cpp[i] = 0.0;
+    }
+    
+    // Get node coordinates
+    double coords[3 * PML3DVISCOUS_NUM_NODES];
+    for (int i = 0; i < PML3DVISCOUS_NUM_NODES; i++) {
+        const Vector& loc = nodePointers[i]->getCrds();
+        coords[i * 3] = loc(0);
+        coords[i * 3 + 1] = loc(1);
+        coords[i * 3 + 2] = loc(2);
+    }
+    
+    // Determine number of integration points based on afp parameter
+    int n_points = (afp < 3.0) ? 27 : 64;
+    
+    // Calculate Lame constants
+    double lambda = xnu * E / ((1.0 + xnu) * (1.0 - 2.0 * xnu));
+    double mu = 0.5 * E / (1.0 + xnu);
+    
+    // Initialize matrices
+    double M_RD[24][24] = {{0.0}};  // Regular domain mass matrix
+    double M_a[24][24] = {{0.0}};   // PML mass matrices
+    double M_b[24][24] = {{0.0}};
+    double M_c[24][24] = {{0.0}};
+    double M_d[24][24] = {{0.0}};
+    double N_a[48][48] = {{0.0}};   // N matrices for PML
+    
+    // Process each integration point
+    for (int kint = 0; kint < n_points; kint++) {
+        // Shape functions and derivatives
+        double N[PML3DVISCOUS_NUM_NODES] = {0.0};
+        double dNdxi[PML3DVISCOUS_NUM_NODES][3] = {{0.0}};
+        
+        // Calculate shape functions at integration point
+        double point[3] = {xi[0][kint], xi[1][kint], xi[2][kint]};
+        calculateShapeFunctions(point, PML3DVISCOUS_NUM_NODES, N, dNdxi);
+        
+        // Calculate Jacobian matrix
+        double dxdxi[3][3] = {{0.0}};
+        for (int i = 0; i < PML3DVISCOUS_NUM_NODES; i++) {
+            for (int j = 0; j < 3; j++) {
+                for (int k = 0; k < 3; k++) {
+                    dxdxi[j][k] += coords[i * 3 + j] * dNdxi[i][k];
+                }
+            }
+        }
+        
+        // Calculate determinant of Jacobian
+        double determinant = 
+            dxdxi[0][0] * (dxdxi[1][1] * dxdxi[2][2] - dxdxi[1][2] * dxdxi[2][1]) -
+            dxdxi[0][1] * (dxdxi[1][0] * dxdxi[2][2] - dxdxi[1][2] * dxdxi[2][0]) +
+            dxdxi[0][2] * (dxdxi[1][0] * dxdxi[2][1] - dxdxi[1][1] * dxdxi[2][0]);
+        
+        // Calculate inverse of Jacobian
+        double dxidx[3][3] = {{0.0}};
+        dxidx[0][0] = (dxdxi[1][1] * dxdxi[2][2] - dxdxi[1][2] * dxdxi[2][1]) / determinant;
+        dxidx[0][1] = (dxdxi[0][2] * dxdxi[2][1] - dxdxi[0][1] * dxdxi[2][2]) / determinant;
+        dxidx[0][2] = (dxdxi[0][1] * dxdxi[1][2] - dxdxi[0][2] * dxdxi[1][1]) / determinant;
+        dxidx[1][0] = (dxdxi[1][2] * dxdxi[2][0] - dxdxi[1][0] * dxdxi[2][2]) / determinant;
+        dxidx[1][1] = (dxdxi[0][0] * dxdxi[2][2] - dxdxi[0][2] * dxdxi[2][0]) / determinant;
+        dxidx[1][2] = (dxdxi[0][2] * dxdxi[1][0] - dxdxi[0][0] * dxdxi[1][2]) / determinant;
+        dxidx[2][0] = (dxdxi[1][0] * dxdxi[2][1] - dxdxi[1][1] * dxdxi[2][0]) / determinant;
+        dxidx[2][1] = (dxdxi[0][1] * dxdxi[2][0] - dxdxi[0][0] * dxdxi[2][1]) / determinant;
+        dxidx[2][2] = (dxdxi[0][0] * dxdxi[1][1] - dxdxi[0][1] * dxdxi[1][0]) / determinant;
+        
+        // Calculate dNdx
+        double dNdx[PML3DVISCOUS_NUM_NODES][3] = {{0.0}};
+        for (int i = 0; i < PML3DVISCOUS_NUM_NODES; i++) {
+            for (int j = 0; j < 3; j++) {
+                for (int k = 0; k < 3; k++) {
+                    dNdx[i][j] += dNdxi[i][k] * dxidx[k][j];
+                }
+            }
+        }
+        
+        // Calculate physical coordinates at integration point
+        double x1 = 0.0, x2 = 0.0, x3 = 0.0;
+        for (int i = 0; i < PML3DVISCOUS_NUM_NODES; i++) {
+            x1 += N[i] * coords[i * 3];
+            x2 += N[i] * coords[i * 3 + 1];
+            x3 += N[i] * coords[i * 3 + 2];
+        }
+        
+        // Calculate PML parameters
+        double pmlAlphaBeta[2][3] = {{0.0}};
+        calculatePMLParameters(x1, x2, x3, pmlAlphaBeta);
+        
+        // Calculate coefficients for PML matrices
+        double coef_a = pmlAlphaBeta[0][0] * pmlAlphaBeta[0][1] * pmlAlphaBeta[0][2];
+        double coef_b = pmlAlphaBeta[0][0] * pmlAlphaBeta[0][1] * pmlAlphaBeta[1][2] + 
+                        pmlAlphaBeta[0][0] * pmlAlphaBeta[0][2] * pmlAlphaBeta[1][1] + 
+                        pmlAlphaBeta[0][1] * pmlAlphaBeta[0][2] * pmlAlphaBeta[1][0];
+        double coef_c = pmlAlphaBeta[0][0] * pmlAlphaBeta[1][1] * pmlAlphaBeta[1][2] + 
+                        pmlAlphaBeta[0][1] * pmlAlphaBeta[1][2] * pmlAlphaBeta[1][0] + 
+                        pmlAlphaBeta[0][2] * pmlAlphaBeta[1][1] * pmlAlphaBeta[1][0];
+        double coef_d = pmlAlphaBeta[1][0] * pmlAlphaBeta[1][1] * pmlAlphaBeta[1][2];
+        
+        // Calculate M_RD and M_a/b/c/d matrices (directly matching Fortran implementation)
+        for (int i = 0; i < PML3DVISCOUS_NUM_NODES; i++) {
+            for (int j = 0; j < PML3DVISCOUS_NUM_NODES; j++) {
+                // Basic mass terms
+                double mass_term = rho * N[i] * N[j] * w[kint] * determinant;
+                M_RD[i][j] += mass_term;
+                
+                // PML mass terms with coefficients
+                M_a[i][j] += coef_a * mass_term;
+                M_b[i][j] += coef_b * mass_term;
+                M_c[i][j] += coef_c * mass_term;
+                M_d[i][j] += coef_d * mass_term;
+            }
+        }
+    }
+    
+    // Extend mass matrices to other dimensions (x, y, z)
+    for (int i = 0; i < PML3DVISCOUS_NUM_NODES; i++) {
+        for (int j = 0; j < PML3DVISCOUS_NUM_NODES; j++) {
+            // Copy x-dimension entries to y and z dimensions
+            M_RD[i+PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] = M_RD[i][j];
+            M_RD[i+2*PML3DVISCOUS_NUM_NODES][j+2*PML3DVISCOUS_NUM_NODES] = M_RD[i][j];
+            
+            M_a[i+PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] = M_a[i][j];
+            M_a[i+2*PML3DVISCOUS_NUM_NODES][j+2*PML3DVISCOUS_NUM_NODES] = M_a[i][j];
+        }
+    }
+    
+    // Calculate N_a matrix (needed for PML elements)
+    for (int i = 0; i < PML3DVISCOUS_NUM_NODES; i++) {
+        for (int j = 0; j < PML3DVISCOUS_NUM_NODES; j++) {
+            // Block (1,1)
+            N_a[i][j] = M_a[i][j]/rho*(lambda+mu)/mu/(3.0*lambda+2.0*mu);
+            
+            // Block (1,2)
+            N_a[i][j+PML3DVISCOUS_NUM_NODES] = -M_a[i][j]/rho*lambda/mu/2.0/(3.0*lambda+2.0*mu);
+            
+            // Block (1,3)
+            N_a[i][j+2*PML3DVISCOUS_NUM_NODES] = -M_a[i][j]/rho*lambda/mu/2.0/(3.0*lambda+2.0*mu);
+            
+            // Block (2,1)
+            N_a[i+PML3DVISCOUS_NUM_NODES][j] = -M_a[i][j]/rho*lambda/mu/2.0/(3.0*lambda+2.0*mu);
+            
+            // Block (2,2)
+            N_a[i+PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] = 
+                M_a[i][j]/rho*(lambda+mu)/mu/(3.0*lambda+2.0*mu);
+            
+            // Block (2,3)
+            N_a[i+PML3DVISCOUS_NUM_NODES][j+2*PML3DVISCOUS_NUM_NODES] = 
+                -M_a[i][j]/rho*lambda/mu/2.0/(3.0*lambda+2.0*mu);
+            
+            // Block (3,1)
+            N_a[i+2*PML3DVISCOUS_NUM_NODES][j] = -M_a[i][j]/rho*lambda/mu/2.0/(3.0*lambda+2.0*mu);
+            
+            // Block (3,2)
+            N_a[i+2*PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] = 
+                -M_a[i][j]/rho*lambda/mu/2.0/(3.0*lambda+2.0*mu);
+            
+            // Block (3,3)
+            N_a[i+2*PML3DVISCOUS_NUM_NODES][j+2*PML3DVISCOUS_NUM_NODES] = 
+                M_a[i][j]/rho*(lambda+mu)/mu/(3.0*lambda+2.0*mu);
+            
+            // Blocks for shear components
+            N_a[i+3*PML3DVISCOUS_NUM_NODES][j+3*PML3DVISCOUS_NUM_NODES] = M_a[i][j]/rho/mu;
+            N_a[i+4*PML3DVISCOUS_NUM_NODES][j+4*PML3DVISCOUS_NUM_NODES] = M_a[i][j]/rho/mu;
+            N_a[i+5*PML3DVISCOUS_NUM_NODES][j+5*PML3DVISCOUS_NUM_NODES] = M_a[i][j]/rho/mu;
+        }
+    }
+    
+    // Build the complete M_PML matrix based on element type
+    double M_PML[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF] = {0.0};
+    
+    if (eleTypeArg == 1) {
+        // Regular domain - only M_RD is used
+        for (int i = 0; i < 3*PML3DVISCOUS_NUM_NODES; i++) {
+            for (int j = 0; j < 3*PML3DVISCOUS_NUM_NODES; j++) {
+                M_PML[i*PML3DVISCOUS_NUM_DOF + j] = M_RD[i][j];
+            }
+        }
+    } else {
+        // PML domain - M_a is used for upper-left block
+        for (int i = 0; i < 3*PML3DVISCOUS_NUM_NODES; i++) {
+            for (int j = 0; j < 3*PML3DVISCOUS_NUM_NODES; j++) {
+                M_PML[i*PML3DVISCOUS_NUM_DOF + j] = M_RD[i][j] + M_a[i][j];
+            }
+        }
+        
+        // Lower-right block with -N_a
+        for (int i = 0; i < 6*PML3DVISCOUS_NUM_NODES; i++) {
+            for (int j = 0; j < 6*PML3DVISCOUS_NUM_NODES; j++) {
+                M_PML[(i+3*PML3DVISCOUS_NUM_NODES)*PML3DVISCOUS_NUM_DOF + (j+3*PML3DVISCOUS_NUM_NODES)] = -N_a[i][j];
+            }
+        }
+    }
+    
+    // Convert to final format for M_cpp (matching Fortran indexing)
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            for (int k = 0; k < 9; k++) {
+                for (int l = 0; l < 9; l++) {
+                    int row = i*9 + k;
+                    int col = j*9 + l;
+                    
+                    // Determine source indices in M_PML
+                    int pml_row, pml_col;
+                    
+                    if (k < 3) {
+                        pml_row = i*3 + k;
+                    } else {
+                        pml_row = 24 + i*6 + (k-3);
+                    }
+                    
+                    if (l < 3) {
+                        pml_col = j*3 + l;
+                    } else {
+                        pml_col = 24 + j*6 + (l-3);
+                    }
+                    
+                    M_cpp[row*PML3DVISCOUS_NUM_DOF + col] = M_PML[pml_row*PML3DVISCOUS_NUM_DOF + pml_col];
+                }
+            }
+        }
+    }
+}
+
 // =======================================================================
 // update
 // =======================================================================
