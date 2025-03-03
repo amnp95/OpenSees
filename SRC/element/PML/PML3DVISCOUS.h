@@ -151,6 +151,9 @@ private:
     void verifyMatrices();
 	void calculateMassMatrix();
 	void calculateStiffnessMatrix();
+	void calculateDampingMatrix();
+	void calculateGMatrix();
+	void calculateHMatrix();
 
 
 	// properties
