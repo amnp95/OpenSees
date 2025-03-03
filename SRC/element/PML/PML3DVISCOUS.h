@@ -150,7 +150,6 @@ private:
     // Add function to verify matrices from Fortran and C++
     void verifyMatrices();
 	void calculateMassMatrix();
-	void calculateMassMatrix();
 
 
 	// properties
