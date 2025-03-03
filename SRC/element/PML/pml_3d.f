@@ -278,15 +278,15 @@
       Damp_beta = PROPS(12)
 
 
-      write(6,*) ' EleType_pos = ',EleType_pos
-      write(6,*) ' PML_L = ',PML_L
-      write(6,*) ' afp = ',afp
-      write(6,*) ' PML_Rcoef = ',PML_Rcoef
-      write(6,*) ' RD_half_width_x = ',RD_half_width_x
-      write(6,*) ' RD_half_width_y = ',RD_half_width_y
-      write(6,*) ' RD_depth = ',RD_depth
-      write(6,*) ' Damp_alpha = ',Damp_alpha
-      write(6,*) ' Damp_beta = ',Damp_beta
+      ! write(6,*) ' EleType_pos = ',EleType_pos
+      ! write(6,*) ' PML_L = ',PML_L
+      ! write(6,*) ' afp = ',afp
+      ! write(6,*) ' PML_Rcoef = ',PML_Rcoef
+      ! write(6,*) ' RD_half_width_x = ',RD_half_width_x
+      ! write(6,*) ' RD_half_width_y = ',RD_half_width_y
+      ! write(6,*) ' RD_depth = ',RD_depth
+      ! write(6,*) ' Damp_alpha = ',Damp_alpha
+      ! write(6,*) ' Damp_beta = ',Damp_beta
       
 
       IF (afp .LT. 3.d0) THEN
@@ -1517,10 +1517,10 @@
       beta(2) = PML_alpha_beta(2,2)
       beta(3) = PML_alpha_beta(2,3)
       
-      ! print alpha and beta for debugging
-      write(6,*) "for x1 = ",x1," x2 = ",x2," x3 = ",x3
-      write(6,*) "alpha = ",alpha(1),alpha(2),alpha(3)
-      write(6,*) "beta = ",beta(1),beta(2),beta(3)
+      ! ! print alpha and beta for debugging
+      ! write(6,*) "for x1 = ",x1," x2 = ",x2," x3 = ",x3
+      ! write(6,*) "alpha = ",alpha(1),alpha(2),alpha(3)
+      ! write(6,*) "beta = ",beta(1),beta(2),beta(3)
       
 
 
