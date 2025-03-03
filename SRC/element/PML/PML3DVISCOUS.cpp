@@ -2599,7 +2599,7 @@ void PML3DVISCOUS::verifyMatrices() {
         opserr << "M matrices match between Fortran and C++ implementations for element " << this->getTag() <<endln;    
     
     // Compare K matrices
-    tolerance = 1;
+    tolerance = 0.1;
     mismatchFound = false;
     for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
         if (fabs(K[i] - K_cpp[i]) > tolerance) {
@@ -2613,7 +2613,7 @@ void PML3DVISCOUS::verifyMatrices() {
     
 
     // Compare C matrices
-    tolerance = 1;
+    tolerance = 0.1;
     mismatchFound = false;
     for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
         if (fabs(C[i] - C_cpp[i]) > tolerance) {
