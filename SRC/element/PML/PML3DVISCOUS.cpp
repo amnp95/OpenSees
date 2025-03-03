@@ -270,13 +270,6 @@ void PML3DVISCOUS::initializeIntegrationPointsAndWeights(int n_points, int n_nod
     }
 
     integrationInitialized = true;
-    // # if the element tag is equal to 1, print the integration points and weights
-    if (eleCount == 1) {
-        opserr << "Integration points and weights:\n";
-        for (int i = 0; i < n_points; i++) {
-            opserr << "Point " << i + 1 << ": (" << xi[0][i] << ", " << xi[1][i] << ", " << xi[2][i] << ") - Weight: " << w[i] << "\n";
-        }
-    }
 }
 
 // =======================================================================
@@ -597,12 +590,6 @@ void PML3DVISCOUS::calculatePMLParameters(double x1, double x2, double x3, doubl
     }
 
     static int intCount = 0;
-    // print the PML parameters for the coordinates given:
-    if (eleCount == 1) {
-        opserr << "PML parameters for coordinates (" << intCount << "  "<< x1 << ", " << x2 << ", " << x3 << "):\n";
-        opserr << "Alpha: (" << pmlAlphaBeta[0][0] << ", " << pmlAlphaBeta[0][1] << ", " << pmlAlphaBeta[0][2] << ")\n";
-        opserr << "Beta: (" << pmlAlphaBeta[1][0] << ", " << pmlAlphaBeta[1][1] << ", " << pmlAlphaBeta[1][2] << ")\n";
-    }
 }
 
 
