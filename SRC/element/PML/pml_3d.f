@@ -808,6 +808,20 @@
           end do
         end do
 
+
+
+      !   print M_RD
+        write(*,*) 'M_RD :'
+         do i = 1,3*NNODE
+            write(*,*) (M_RD(i,j),j=1,3*NNODE)
+         end do
+
+      ! print M_PML
+        write(*,*) 'M_PML :'
+         do i = 1,3*NNODE
+            write(*,*) (M_PML(i,j),j=1,3*NNODE)
+         end do
+
       return
 
       END SUBROUTINE PML_3D

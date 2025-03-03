@@ -827,6 +827,28 @@ void PML3DVISCOUS::calculateMassMatrix() {
     
     // Build the complete M_PML matrix based on element type
     double M_PML[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF] = {0.0};
+
+    
+    // print M_rd
+    opserr << "M_RD matrix:\n";
+    for (int i = 0; i < 24; i++) {
+        for (int j = 0; j < 24; j++) {
+            opserr << M_RD[i][j] << " ";
+        }
+        opserr << "\n";
+    }
+
+
+    // print M_a
+    opserr << "M_a matrix:\n";
+    for (int i = 0; i < 24; i++) {
+        for (int j = 0; j < 24; j++) {
+            opserr << M_a[i][j] << " ";
+        }
+        opserr << "\n";
+    }
+
+
     
     if (eleTypeArg == 1) {
         // Regular domain - only M_RD is used
@@ -835,6 +857,8 @@ void PML3DVISCOUS::calculateMassMatrix() {
                 M_PML[i*PML3DVISCOUS_NUM_DOF + j] = M_RD[i][j];
             }
         }
+        opserr << "ERROR: PML mass matrix is not calculated for regular domain\n";
+        exit(-1);
     } else {
         // PML domain - M_a is used for upper-left block
         for (int i = 0; i < 3*PML3DVISCOUS_NUM_NODES; i++) {
@@ -850,35 +874,11 @@ void PML3DVISCOUS::calculateMassMatrix() {
             }
         }
     }
+
+
+
     
-    // Convert to final format for M_cpp (matching Fortran indexing)
-    for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 8; j++) {
-            for (int k = 0; k < 9; k++) {
-                for (int l = 0; l < 9; l++) {
-                    int row = i*9 + k;
-                    int col = j*9 + l;
-                    
-                    // Determine source indices in M_PML
-                    int pml_row, pml_col;
-                    
-                    if (k < 3) {
-                        pml_row = i*3 + k;
-                    } else {
-                        pml_row = 24 + i*6 + (k-3);
-                    }
-                    
-                    if (l < 3) {
-                        pml_col = j*3 + l;
-                    } else {
-                        pml_col = 24 + j*6 + (l-3);
-                    }
-                    
-                    M_cpp[row*PML3DVISCOUS_NUM_DOF + col] = M_PML[pml_row*PML3DVISCOUS_NUM_DOF + pml_col];
-                }
-            }
-        }
-    }
+
 }
 
 // =======================================================================
