@@ -984,7 +984,7 @@ void PML3DVISCOUS::calculateStiffnessMatrix() {
                     int row_src = (i - 1) + 8 * k;      // Source row index
                     int col_src = (j - 1) + 8 * l;      // Source column index
                     int idx_tgt = row_tgt * PML3DVISCOUS_NUM_DOF + col_tgt;
-                    int idx_src = row_src * PML3DVISCOUS_NUM_DOF + col_src;
+                    int idx_src = row_src + col_src * PML3DVISCOUS_NUM_DOF;
                     K_cpp[idx_tgt] = K_PML[idx_src];
                 }
             }
