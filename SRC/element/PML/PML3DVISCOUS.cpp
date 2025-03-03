@@ -606,6 +606,393 @@ void PML3DVISCOUS::calculatePMLParameters(double x1, double x2, double x3, doubl
 }
 
 // =======================================================================
+// calcalculateStiffnessMatrix
+// =======================================================================
+void PML3DVISCOUS::calculateStiffnessMatrix() {
+    // Reset stiffness matrix
+    for (int i = 0; i < PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF; i++) {
+        K_cpp[i] = 0.0;
+    }
+    
+    // Get node coordinates
+    double coords[3 * PML3DVISCOUS_NUM_NODES];
+    for (int i = 0; i < PML3DVISCOUS_NUM_NODES; i++) {
+        const Vector& loc = nodePointers[i]->getCrds();
+        coords[i * 3] = loc(0);
+        coords[i * 3 + 1] = loc(1);
+        coords[i * 3 + 2] = loc(2);
+    }
+    
+    // Determine number of integration points based on afp parameter
+    int n_points = (afp < 3.0) ? 27 : 64;
+    
+    // Calculate Lame constants
+    double lambda = xnu * E / ((1.0 + xnu) * (1.0 - 2.0 * xnu));
+    double mu = 0.5 * E / (1.0 + xnu);
+    
+    // Initialize matrices
+    double K_RD[24][24] = {{0.0}};  // Regular domain stiffness matrix
+    double M_a[24][24] = {{0.0}};   // PML mass matrices
+    double M_b[24][24] = {{0.0}};
+    double M_c[24][24] = {{0.0}};
+    double M_d[24][24] = {{0.0}};
+    double N_a[48][48] = {{0.0}};   // N matrices for PML
+    double N_b[48][48] = {{0.0}};
+    double N_c[48][48] = {{0.0}};
+    double N_d[48][48] = {{0.0}};
+    double A_eu[24][48] = {{0.0}};  // A matrices for PML
+    double A_wu[24][48] = {{0.0}};
+    double A_pu[24][48] = {{0.0}};
+    
+    // Process each integration point
+    for (int kint = 0; kint < n_points; kint++) {
+        // Shape functions and derivatives
+        double N[PML3DVISCOUS_NUM_NODES] = {0.0};
+        double dNdxi[PML3DVISCOUS_NUM_NODES][3] = {{0.0}};
+        
+        // Calculate shape functions at integration point
+        double point[3] = {xi[0][kint], xi[1][kint], xi[2][kint]};
+        calculateShapeFunctions(point, PML3DVISCOUS_NUM_NODES, N, dNdxi);
+        
+        // Calculate Jacobian matrix
+        double dxdxi[3][3] = {{0.0}};
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                dxdxi[i][j] = 0.0;
+                for (int k = 0; k < PML3DVISCOUS_NUM_NODES; k++) {
+                    dxdxi[i][j] += coords[k*3+i] * dNdxi[k][j];
+                }
+            }
+        }
+        
+        // Calculate determinant and inverse of Jacobian
+        double determinant;
+        double dxidx[3][3];
+        
+        determinant = dxdxi[0][0] * (dxdxi[1][1] * dxdxi[2][2] - dxdxi[1][2] * dxdxi[2][1])
+                    - dxdxi[0][1] * (dxdxi[1][0] * dxdxi[2][2] - dxdxi[1][2] * dxdxi[2][0])
+                    + dxdxi[0][2] * (dxdxi[1][0] * dxdxi[2][1] - dxdxi[1][1] * dxdxi[2][0]);
+        
+        if (determinant == 0.0) {
+            opserr << "Error in PML3DVISCOUS::calculateStiffnessMatrix: Zero Jacobian determinant" << endln;
+            return;
+        }
+        
+        // Calculate inverse of Jacobian
+        dxidx[0][0] = (dxdxi[1][1] * dxdxi[2][2] - dxdxi[1][2] * dxdxi[2][1]) / determinant;
+        dxidx[0][1] = (dxdxi[0][2] * dxdxi[2][1] - dxdxi[0][1] * dxdxi[2][2]) / determinant;
+        dxidx[0][2] = (dxdxi[0][1] * dxdxi[1][2] - dxdxi[0][2] * dxdxi[1][1]) / determinant;
+        dxidx[1][0] = (dxdxi[1][2] * dxdxi[2][0] - dxdxi[1][0] * dxdxi[2][2]) / determinant;
+        dxidx[1][1] = (dxdxi[0][0] * dxdxi[2][2] - dxdxi[0][2] * dxdxi[2][0]) / determinant;
+        dxidx[1][2] = (dxdxi[0][2] * dxdxi[1][0] - dxdxi[0][0] * dxdxi[1][2]) / determinant;
+        dxidx[2][0] = (dxdxi[1][0] * dxdxi[2][1] - dxdxi[1][1] * dxdxi[2][0]) / determinant;
+        dxidx[2][1] = (dxdxi[0][1] * dxdxi[2][0] - dxdxi[0][0] * dxdxi[2][1]) / determinant;
+        dxidx[2][2] = (dxdxi[0][0] * dxdxi[1][1] - dxdxi[0][1] * dxdxi[1][0]) / determinant;
+        
+        // Calculate dNdx - derivatives of shape functions w.r.t. physical coordinates
+        double dNdx[PML3DVISCOUS_NUM_NODES][3] = {{0.0}};
+        for (int i = 0; i < PML3DVISCOUS_NUM_NODES; i++) {
+            for (int j = 0; j < 3; j++) {
+                dNdx[i][j] = 0.0;
+                for (int k = 0; k < 3; k++) {
+                    dNdx[i][j] += dNdxi[i][k] * dxidx[k][j];
+                }
+            }
+        }
+        
+        // Calculate physical coordinates at integration point
+        double x1 = 0.0, x2 = 0.0, x3 = 0.0;
+        for (int i = 0; i < PML3DVISCOUS_NUM_NODES; i++) {
+            x1 += N[i] * coords[i * 3];
+            x2 += N[i] * coords[i * 3 + 1];
+            x3 += N[i] * coords[i * 3 + 2];
+        }
+        
+        // Calculate PML parameters
+        double pmlAlphaBeta[2][3] = {{0.0}};
+        calculatePMLParameters(x1, x2, x3, pmlAlphaBeta);
+        
+        // Calculate coefficients for PML matrices
+        double coef_a = pmlAlphaBeta[0][0] * pmlAlphaBeta[0][1] * pmlAlphaBeta[0][2];
+        double coef_b = pmlAlphaBeta[0][0] * pmlAlphaBeta[0][1] * pmlAlphaBeta[1][2] + 
+                        pmlAlphaBeta[0][0] * pmlAlphaBeta[0][2] * pmlAlphaBeta[1][1] + 
+                        pmlAlphaBeta[0][1] * pmlAlphaBeta[0][2] * pmlAlphaBeta[1][0];
+        double coef_c = pmlAlphaBeta[0][0] * pmlAlphaBeta[1][1] * pmlAlphaBeta[1][2] + 
+                        pmlAlphaBeta[0][1] * pmlAlphaBeta[1][2] * pmlAlphaBeta[1][0] + 
+                        pmlAlphaBeta[0][2] * pmlAlphaBeta[1][1] * pmlAlphaBeta[1][0];
+        double coef_d = pmlAlphaBeta[1][0] * pmlAlphaBeta[1][1] * pmlAlphaBeta[1][2];
+        
+        // Calculate coefficients for Le, Lp, Lw matrices
+        double coef_Le[3][3] = {{0.0}};
+        double coef_Lp[3][3] = {{0.0}};
+        double coef_Lw[3][3] = {{0.0}};
+        
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                coef_Le[i][j] = pmlAlphaBeta[0][i] * pmlAlphaBeta[0][j];
+                coef_Lp[i][j] = pmlAlphaBeta[0][i] * pmlAlphaBeta[1][j] + 
+                                pmlAlphaBeta[1][i] * pmlAlphaBeta[0][j];
+                coef_Lw[i][j] = pmlAlphaBeta[1][i] * pmlAlphaBeta[1][j];
+            }
+        }
+        
+        // Define vectors for shape function derivatives
+        double Phi_x[PML3DVISCOUS_NUM_NODES] = {0.0};
+        double Phi_y[PML3DVISCOUS_NUM_NODES] = {0.0};
+        double Phi_z[PML3DVISCOUS_NUM_NODES] = {0.0};
+        
+        for (int i = 0; i < PML3DVISCOUS_NUM_NODES; i++) {
+            Phi_x[i] = dNdx[i][0];
+            Phi_y[i] = dNdx[i][1];
+            Phi_z[i] = dNdx[i][2];
+        }
+        
+        // Calculate element stiffness components
+        double Kxx[PML3DVISCOUS_NUM_NODES][PML3DVISCOUS_NUM_NODES] = {{0.0}};
+        double Kyy[PML3DVISCOUS_NUM_NODES][PML3DVISCOUS_NUM_NODES] = {{0.0}};
+        double Kzz[PML3DVISCOUS_NUM_NODES][PML3DVISCOUS_NUM_NODES] = {{0.0}};
+        double Kxy[PML3DVISCOUS_NUM_NODES][PML3DVISCOUS_NUM_NODES] = {{0.0}};
+        double Kxz[PML3DVISCOUS_NUM_NODES][PML3DVISCOUS_NUM_NODES] = {{0.0}};
+        double Kyz[PML3DVISCOUS_NUM_NODES][PML3DVISCOUS_NUM_NODES] = {{0.0}};
+        double Kyx[PML3DVISCOUS_NUM_NODES][PML3DVISCOUS_NUM_NODES] = {{0.0}};
+        double Kzx[PML3DVISCOUS_NUM_NODES][PML3DVISCOUS_NUM_NODES] = {{0.0}};
+        double Kzy[PML3DVISCOUS_NUM_NODES][PML3DVISCOUS_NUM_NODES] = {{0.0}};
+        
+        // Calculate element stiffness matrix components
+        for (int i = 0; i < PML3DVISCOUS_NUM_NODES; i++) {
+            for (int j = 0; j < PML3DVISCOUS_NUM_NODES; j++) {
+                // Calculate stiffness submatrices
+                Kxx[i][j] = (lambda + 2.0 * mu) * Phi_x[i] * Phi_x[j] + 
+                            mu * (Phi_y[i] * Phi_y[j] + Phi_z[i] * Phi_z[j]);
+                            
+                Kyy[i][j] = (lambda + 2.0 * mu) * Phi_y[i] * Phi_y[j] + 
+                            mu * (Phi_x[i] * Phi_x[j] + Phi_z[i] * Phi_z[j]);
+                            
+                Kzz[i][j] = (lambda + 2.0 * mu) * Phi_z[i] * Phi_z[j] + 
+                            mu * (Phi_x[i] * Phi_x[j] + Phi_y[i] * Phi_y[j]);
+                
+                Kxy[i][j] = lambda * Phi_x[i] * Phi_y[j] + mu * Phi_y[i] * Phi_x[j];
+                Kxz[i][j] = lambda * Phi_x[i] * Phi_z[j] + mu * Phi_z[i] * Phi_x[j];
+                Kyz[i][j] = lambda * Phi_y[i] * Phi_z[j] + mu * Phi_z[i] * Phi_y[j];
+                
+                // Calculate A_eu, A_pu, A_wu matrices for PML
+                A_eu[i][j] += Phi_x[i] * N[j] * coef_Le[1][2] * w[kint] * determinant;
+                A_eu[i][j+PML3DVISCOUS_NUM_NODES*3] += Phi_y[i] * N[j] * coef_Le[0][2] * w[kint] * determinant;
+                A_eu[i][j+PML3DVISCOUS_NUM_NODES*4] += Phi_z[i] * N[j] * coef_Le[0][1] * w[kint] * determinant;
+                
+                A_eu[i+PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] += Phi_y[i] * N[j] * coef_Le[0][2] * w[kint] * determinant;
+                A_eu[i+PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES*3] += Phi_x[i] * N[j] * coef_Le[1][2] * w[kint] * determinant;
+                A_eu[i+PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES*5] += Phi_z[i] * N[j] * coef_Le[0][1] * w[kint] * determinant;
+                
+                A_eu[i+PML3DVISCOUS_NUM_NODES*2][j+PML3DVISCOUS_NUM_NODES*2] += Phi_z[i] * N[j] * coef_Le[0][1] * w[kint] * determinant;
+                A_eu[i+PML3DVISCOUS_NUM_NODES*2][j+PML3DVISCOUS_NUM_NODES*4] += Phi_x[i] * N[j] * coef_Le[1][2] * w[kint] * determinant;
+                A_eu[i+PML3DVISCOUS_NUM_NODES*2][j+PML3DVISCOUS_NUM_NODES*5] += Phi_y[i] * N[j] * coef_Le[0][2] * w[kint] * determinant;
+                
+                A_pu[i][j] += Phi_x[i] * N[j] * coef_Lp[1][2] * w[kint] * determinant;
+                A_pu[i][j+PML3DVISCOUS_NUM_NODES*3] += Phi_y[i] * N[j] * coef_Lp[0][2] * w[kint] * determinant;
+                A_pu[i][j+PML3DVISCOUS_NUM_NODES*4] += Phi_z[i] * N[j] * coef_Lp[0][1] * w[kint] * determinant;
+                
+                A_pu[i+PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] += Phi_y[i] * N[j] * coef_Lp[0][2] * w[kint] * determinant;
+                A_pu[i+PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES*3] += Phi_x[i] * N[j] * coef_Lp[1][2] * w[kint] * determinant;
+                A_pu[i+PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES*5] += Phi_z[i] * N[j] * coef_Lp[0][1] * w[kint] * determinant;
+                
+                A_pu[i+PML3DVISCOUS_NUM_NODES*2][j+PML3DVISCOUS_NUM_NODES*2] += Phi_z[i] * N[j] * coef_Lp[0][1] * w[kint] * determinant;
+                A_pu[i+PML3DVISCOUS_NUM_NODES*2][j+PML3DVISCOUS_NUM_NODES*4] += Phi_x[i] * N[j] * coef_Lp[1][2] * w[kint] * determinant;
+                A_pu[i+PML3DVISCOUS_NUM_NODES*2][j+PML3DVISCOUS_NUM_NODES*5] += Phi_y[i] * N[j] * coef_Lp[0][2] * w[kint] * determinant;
+                
+                A_wu[i][j] += Phi_x[i] * N[j] * coef_Lw[1][2] * w[kint] * determinant;
+                A_wu[i][j+PML3DVISCOUS_NUM_NODES*3] += Phi_y[i] * N[j] * coef_Lw[0][2] * w[kint] * determinant;
+                A_wu[i][j+PML3DVISCOUS_NUM_NODES*4] += Phi_z[i] * N[j] * coef_Lw[0][1] * w[kint] * determinant;
+                
+                A_wu[i+PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] += Phi_y[i] * N[j] * coef_Lw[0][2] * w[kint] * determinant;
+                A_wu[i+PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES*3] += Phi_x[i] * N[j] * coef_Lw[1][2] * w[kint] * determinant;
+                A_wu[i+PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES*5] += Phi_z[i] * N[j] * coef_Lw[0][1] * w[kint] * determinant;
+                
+                A_wu[i+PML3DVISCOUS_NUM_NODES*2][j+PML3DVISCOUS_NUM_NODES*2] += Phi_z[i] * N[j] * coef_Lw[0][1] * w[kint] * determinant;
+                A_wu[i+PML3DVISCOUS_NUM_NODES*2][j+PML3DVISCOUS_NUM_NODES*4] += Phi_x[i] * N[j] * coef_Lw[1][2] * w[kint] * determinant;
+                A_wu[i+PML3DVISCOUS_NUM_NODES*2][j+PML3DVISCOUS_NUM_NODES*5] += Phi_y[i] * N[j] * coef_Lw[0][2] * w[kint] * determinant;
+                
+                // Calculate mass-related matrices for PML
+                double mass_term = rho * N[i] * N[j] * w[kint] * determinant;
+                M_a[i][j] += coef_a * mass_term;
+                M_b[i][j] += coef_b * mass_term;
+                M_c[i][j] += coef_c * mass_term;
+                M_d[i][j] += coef_d * mass_term;
+            }
+        }
+        
+        // Compute transpose of off-diagonal blocks
+        for (int i = 0; i < PML3DVISCOUS_NUM_NODES; i++) {
+            for (int j = 0; j < PML3DVISCOUS_NUM_NODES; j++) {
+                Kyx[i][j] = Kxy[j][i];
+                Kzx[i][j] = Kxz[j][i];
+                Kzy[i][j] = Kyz[j][i];
+            }
+        }
+        
+        // Assemble K_RD matrix (Regular domain stiffness matrix)
+        for (int i = 0; i < PML3DVISCOUS_NUM_NODES; i++) {
+            for (int j = 0; j < PML3DVISCOUS_NUM_NODES; j++) {
+                // Diagonal blocks
+                K_RD[i][j] += Kxx[i][j] * w[kint] * determinant;
+                K_RD[i+PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] += Kyy[i][j] * w[kint] * determinant;
+                K_RD[i+2*PML3DVISCOUS_NUM_NODES][j+2*PML3DVISCOUS_NUM_NODES] += Kzz[i][j] * w[kint] * determinant;
+                
+                // Off-diagonal blocks
+                K_RD[i][j+PML3DVISCOUS_NUM_NODES] += Kxy[i][j] * w[kint] * determinant;
+                K_RD[i][j+2*PML3DVISCOUS_NUM_NODES] += Kxz[i][j] * w[kint] * determinant;
+                K_RD[i+PML3DVISCOUS_NUM_NODES][j+2*PML3DVISCOUS_NUM_NODES] += Kyz[i][j] * w[kint] * determinant;
+                
+                K_RD[i+PML3DVISCOUS_NUM_NODES][j] += Kyx[i][j] * w[kint] * determinant;
+                K_RD[i+2*PML3DVISCOUS_NUM_NODES][j] += Kzx[i][j] * w[kint] * determinant;
+                K_RD[i+2*PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] += Kzy[i][j] * w[kint] * determinant;
+            }
+        }
+    }
+    
+    // Copy values for extended mass matrices
+    for (int i = 0; i < PML3DVISCOUS_NUM_NODES; i++) {
+        for (int j = 0; j < PML3DVISCOUS_NUM_NODES; j++) {
+            M_a[i+PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] = M_a[i][j];
+            M_a[i+2*PML3DVISCOUS_NUM_NODES][j+2*PML3DVISCOUS_NUM_NODES] = M_a[i][j];
+            
+            M_b[i+PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] = M_b[i][j];
+            M_b[i+2*PML3DVISCOUS_NUM_NODES][j+2*PML3DVISCOUS_NUM_NODES] = M_b[i][j];
+            
+            M_c[i+PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] = M_c[i][j];
+            M_c[i+2*PML3DVISCOUS_NUM_NODES][j+2*PML3DVISCOUS_NUM_NODES] = M_c[i][j];
+            
+            M_d[i+PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] = M_d[i][j];
+            M_d[i+2*PML3DVISCOUS_NUM_NODES][j+2*PML3DVISCOUS_NUM_NODES] = M_d[i][j];
+        }
+    }
+    
+    // Calculate N matrices for PML
+    for (int i = 0; i < PML3DVISCOUS_NUM_NODES; i++) {
+        for (int j = 0; j < PML3DVISCOUS_NUM_NODES; j++) {
+            // Calculate N_a matrix
+            N_a[i][j] = M_a[i][j]/rho*(lambda+mu)/mu/(3.0*lambda+2.0*mu);
+            N_a[i][j+PML3DVISCOUS_NUM_NODES] = -M_a[i][j]/rho*(lambda)/mu/2.0/(3.0*lambda+2.0*mu);
+            N_a[i][j+2*PML3DVISCOUS_NUM_NODES] = -M_a[i][j]/rho*(lambda)/mu/2.0/(3.0*lambda+2.0*mu);
+            N_a[i+PML3DVISCOUS_NUM_NODES][j] = -M_a[i][j]/rho*(lambda)/mu/2.0/(3.0*lambda+2.0*mu);
+            N_a[i+PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] = M_a[i][j]/rho*(lambda+mu)/mu/(3.0*lambda+2.0*mu);
+            N_a[i+PML3DVISCOUS_NUM_NODES][j+2*PML3DVISCOUS_NUM_NODES] = -M_a[i][j]/rho*(lambda)/mu/2.0/(3.0*lambda+2.0*mu);
+            N_a[i+2*PML3DVISCOUS_NUM_NODES][j] = -M_a[i][j]/rho*(lambda)/mu/2.0/(3.0*lambda+2.0*mu);
+            N_a[i+2*PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] = -M_a[i][j]/rho*(lambda)/mu/2.0/(3.0*lambda+2.0*mu);
+            N_a[i+2*PML3DVISCOUS_NUM_NODES][j+2*PML3DVISCOUS_NUM_NODES] = M_a[i][j]/rho*(lambda+mu)/mu/(3.0*lambda+2.0*mu);
+            N_a[i+3*PML3DVISCOUS_NUM_NODES][j+3*PML3DVISCOUS_NUM_NODES] = M_a[i][j]/rho/mu;
+            N_a[i+4*PML3DVISCOUS_NUM_NODES][j+4*PML3DVISCOUS_NUM_NODES] = M_a[i][j]/rho/mu;
+            N_a[i+5*PML3DVISCOUS_NUM_NODES][j+5*PML3DVISCOUS_NUM_NODES] = M_a[i][j]/rho/mu;
+
+            // Calculate N_b matrix
+            N_b[i][j] = M_b[i][j]/rho*(lambda+mu)/mu/(3.0*lambda+2.0*mu);
+            N_b[i][j+PML3DVISCOUS_NUM_NODES] = -M_b[i][j]/rho*(lambda)/mu/2.0/(3.0*lambda+2.0*mu);
+            N_b[i][j+2*PML3DVISCOUS_NUM_NODES] = -M_b[i][j]/rho*(lambda)/mu/2.0/(3.0*lambda+2.0*mu);
+            N_b[i+PML3DVISCOUS_NUM_NODES][j] = -M_b[i][j]/rho*(lambda)/mu/2.0/(3.0*lambda+2.0*mu);
+            N_b[i+PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] = M_b[i][j]/rho*(lambda+mu)/mu/(3.0*lambda+2.0*mu);
+            N_b[i+PML3DVISCOUS_NUM_NODES][j+2*PML3DVISCOUS_NUM_NODES] = -M_b[i][j]/rho*(lambda)/mu/2.0/(3.0*lambda+2.0*mu);
+            N_b[i+2*PML3DVISCOUS_NUM_NODES][j] = -M_b[i][j]/rho*(lambda)/mu/2.0/(3.0*lambda+2.0*mu);
+            N_b[i+2*PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] = -M_b[i][j]/rho*(lambda)/mu/2.0/(3.0*lambda+2.0*mu);
+            N_b[i+2*PML3DVISCOUS_NUM_NODES][j+2*PML3DVISCOUS_NUM_NODES] = M_b[i][j]/rho*(lambda+mu)/mu/(3.0*lambda+2.0*mu);
+            N_b[i+3*PML3DVISCOUS_NUM_NODES][j+3*PML3DVISCOUS_NUM_NODES] = M_b[i][j]/rho/mu;
+            N_b[i+4*PML3DVISCOUS_NUM_NODES][j+4*PML3DVISCOUS_NUM_NODES] = M_b[i][j]/rho/mu;
+            N_b[i+5*PML3DVISCOUS_NUM_NODES][j+5*PML3DVISCOUS_NUM_NODES] = M_b[i][j]/rho/mu;
+
+            // Calculate N_c matrix
+            N_c[i][j] = M_c[i][j]/rho*(lambda+mu)/mu/(3.0*lambda+2.0*mu);
+            N_c[i][j+PML3DVISCOUS_NUM_NODES] = -M_c[i][j]/rho*(lambda)/mu/2.0/(3.0*lambda+2.0*mu);
+            N_c[i][j+2*PML3DVISCOUS_NUM_NODES] = -M_c[i][j]/rho*(lambda)/mu/2.0/(3.0*lambda+2.0*mu);
+            N_c[i+PML3DVISCOUS_NUM_NODES][j] = -M_c[i][j]/rho*(lambda)/mu/2.0/(3.0*lambda+2.0*mu);
+            N_c[i+PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] = M_c[i][j]/rho*(lambda+mu)/mu/(3.0*lambda+2.0*mu);
+            N_c[i+PML3DVISCOUS_NUM_NODES][j+2*PML3DVISCOUS_NUM_NODES] = -M_c[i][j]/rho*(lambda)/mu/2.0/(3.0*lambda+2.0*mu);
+            N_c[i+2*PML3DVISCOUS_NUM_NODES][j] = -M_c[i][j]/rho*(lambda)/mu/2.0/(3.0*lambda+2.0*mu);
+            N_c[i+2*PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] = -M_c[i][j]/rho*(lambda)/mu/2.0/(3.0*lambda+2.0*mu);
+            N_c[i+2*PML3DVISCOUS_NUM_NODES][j+2*PML3DVISCOUS_NUM_NODES] = M_c[i][j]/rho*(lambda+mu)/mu/(3.0*lambda+2.0*mu);
+            N_c[i+3*PML3DVISCOUS_NUM_NODES][j+3*PML3DVISCOUS_NUM_NODES] = M_c[i][j]/rho/mu;
+            N_c[i+4*PML3DVISCOUS_NUM_NODES][j+4*PML3DVISCOUS_NUM_NODES] = M_c[i][j]/rho/mu;
+            N_c[i+5*PML3DVISCOUS_NUM_NODES][j+5*PML3DVISCOUS_NUM_NODES] = M_c[i][j]/rho/mu;
+            
+            // Calculate N_d matrix
+            N_d[i][j] = M_d[i][j]/rho*(lambda+mu)/mu/(3.0*lambda+2.0*mu);
+            N_d[i][j+PML3DVISCOUS_NUM_NODES] = -M_d[i][j]/rho*(lambda)/mu/2.0/(3.0*lambda+2.0*mu);
+            N_d[i][j+2*PML3DVISCOUS_NUM_NODES] = -M_d[i][j]/rho*(lambda)/mu/2.0/(3.0*lambda+2.0*mu);
+            N_d[i+PML3DVISCOUS_NUM_NODES][j] = -M_d[i][j]/rho*(lambda)/mu/2.0/(3.0*lambda+2.0*mu);
+            N_d[i+PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] = M_d[i][j]/rho*(lambda+mu)/mu/(3.0*lambda+2.0*mu);
+            N_d[i+PML3DVISCOUS_NUM_NODES][j+2*PML3DVISCOUS_NUM_NODES] = -M_d[i][j]/rho*(lambda)/mu/2.0/(3.0*lambda+2.0*mu);
+            N_d[i+2*PML3DVISCOUS_NUM_NODES][j] = -M_d[i][j]/rho*(lambda)/mu/2.0/(3.0*lambda+2.0*mu);
+            N_d[i+2*PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] = -M_d[i][j]/rho*(lambda)/mu/2.0/(3.0*lambda+2.0*mu);
+            N_d[i+2*PML3DVISCOUS_NUM_NODES][j+2*PML3DVISCOUS_NUM_NODES] = M_d[i][j]/rho*(lambda+mu)/mu/(3.0*lambda+2.0*mu);
+            N_d[i+3*PML3DVISCOUS_NUM_NODES][j+3*PML3DVISCOUS_NUM_NODES] = M_d[i][j]/rho/mu;
+            N_d[i+4*PML3DVISCOUS_NUM_NODES][j+4*PML3DVISCOUS_NUM_NODES] = M_d[i][j]/rho/mu;
+            N_d[i+5*PML3DVISCOUS_NUM_NODES][j+5*PML3DVISCOUS_NUM_NODES] = M_d[i][j]/rho/mu;
+        }
+    }
+    
+    // Assemble the complete stiffness matrix K_PML
+    double K_PML[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF] = {0.0};
+    
+    // Build the stiffness matrix for PML elements using the same logic as in Fortran
+    if (eleTypeArg == 1) {
+        // If element is in regular domain, use the regular domain stiffness matrix
+        for (int i = 0; i < 3*PML3DVISCOUS_NUM_NODES; i++) {
+            for (int j = 0; j < 3*PML3DVISCOUS_NUM_NODES; j++) {
+                K_PML[i*PML3DVISCOUS_NUM_DOF + j] = K_RD[i][j];
+            }
+        }
+    } else {
+        // If element is in PML domain, construct the PML stiffness matrix
+        
+        // Upper-left block: K_RD + M_c
+        for (int i = 0; i < 3*PML3DVISCOUS_NUM_NODES; i++) {
+            for (int j = 0; j < 3*PML3DVISCOUS_NUM_NODES; j++) {
+                K_PML[i*PML3DVISCOUS_NUM_DOF + j] = M_c[i][j] + M_b[i][j]*Damp_alpha;
+            }
+        }
+        
+        // Upper-right block: A_pu + A_wu*Damp_beta
+        for (int i = 0; i < 3*PML3DVISCOUS_NUM_NODES; i++) {
+            for (int j = 0; j < 6*PML3DVISCOUS_NUM_NODES; j++) {
+                K_PML[i*PML3DVISCOUS_NUM_DOF + j + 3*PML3DVISCOUS_NUM_NODES] = 
+                    A_pu[i][j] + A_wu[i][j]*Damp_beta;
+            }
+        }
+        
+        // Lower-left block: transpose of A_pu
+        for (int i = 0; i < 6*PML3DVISCOUS_NUM_NODES; i++) {
+            for (int j = 0; j < 3*PML3DVISCOUS_NUM_NODES; j++) {
+                K_PML[(i + 3*PML3DVISCOUS_NUM_NODES)*PML3DVISCOUS_NUM_DOF + j] = A_pu[j][i];
+            }
+        }
+        
+        // Lower-right block: -N_c
+        for (int i = 0; i < 6*PML3DVISCOUS_NUM_NODES; i++) {
+            for (int j = 0; j < 6*PML3DVISCOUS_NUM_NODES; j++) {
+                K_PML[(i + 3*PML3DVISCOUS_NUM_NODES)*PML3DVISCOUS_NUM_DOF + j + 3*PML3DVISCOUS_NUM_NODES] = 
+                    -N_c[i][j];
+            }
+        }
+    }
+    
+    // Reorder the matrix for the expected format
+    // This is necessary because Fortran uses column-major order and we're using row-major order
+    for (int i = 1; i <= 8; i++) {
+        for (int j = 1; j <= 8; j++) {
+            for (int k = 0; k < 9; k++) {
+                for (int l = 0; l < 9; l++) {
+                    int row_tgt = (i - 1) * 9 + k;      // Target row index
+                    int col_tgt = (j - 1) * 9 + l;      // Target column index
+                    int row_src = (i - 1) + 8 * k;      // Source row index
+                    int col_src = (j - 1) + 8 * l;      // Source column index
+                    int idx_tgt = row_tgt * PML3DVISCOUS_NUM_DOF + col_tgt;
+                    int idx_src = row_src * PML3DVISCOUS_NUM_DOF + col_src;
+                    K_cpp[idx_tgt] = K_PML[idx_src];
+                }
+            }
+        }
+    }
+}
+
+// =======================================================================
 //  destructor
 // ======================================================================= 
 PML3DVISCOUS::~PML3DVISCOUS()
@@ -651,6 +1038,7 @@ void  PML3DVISCOUS::setDomain(Domain* theDomain)
     pml3d_(M, C, K, G, H, &NDOFEL, props, coords, &MCRD, &NNODE, &LFLAGS);
 
     calculateMassMatrix();
+    calculateStiffnessMatrix();
     
     // Verify the matrices
     verifyMatrices();
@@ -1399,22 +1787,24 @@ void PML3DVISCOUS::verifyMatrices() {
     opserr << "M matrices match between Fortran and C++ implementations for element " << this->getTag() <<endln;
     return;
     
+    
+    // Compare K matrices
+    for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
+        if (fabs(K[i] - K_cpp[i]) > tolerance) {
+            opserr << "PML3DVISCOUS::verifyMatrices - Mismatch in K at element " << this->getTag() <<endln;
+            opserr << "K[" << i << "] = " << K[i] << ", K_cpp[" << i << "] = " << K_cpp[i] <<endln;
+            mismatchFound = true;
+        }
+    }
+    opserr << "K matrices match between Fortran and C++ implementations for element " << this->getTag() <<endln;
+    return;
+
     // Compare C matrices
     for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
         if (fabs(C[i] - C_cpp[i]) > tolerance) {
             opserr << "PML3DVISCOUS::verifyMatrices - Mismatch in C at element " << this->getTag() <<endln;
             mismatchFound = true;
             return;
-        }
-    }
-    
-    // Compare K matrices
-    for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
-        if (fabs(K[i] - K_cpp[i]) > tolerance) {
-            opserr << "PML3DVISCOUS::verifyMatrices - Mismatch in K at element " << this->getTag() <<endln;
-            mismatchFound = true;
-            return;
-
         }
     }
     
