@@ -2626,7 +2626,7 @@ void PML3DVISCOUS::verifyMatrices() {
     
     // Compare K matrices
     tolerance = 1;
-    mismatchFound = true;
+    mismatchFound = false;
     for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
         if (fabs(K[i] - K_cpp[i]) > tolerance) {
             opserr << "PML3DVISCOUS::verifyMatrices - Mismatch in K at element " << this->getTag() <<endln;
@@ -2640,7 +2640,7 @@ void PML3DVISCOUS::verifyMatrices() {
 
     // Compare C matrices
     tolerance = 1;
-    mismatchFound = true;
+    mismatchFound = false;
     for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
         if (fabs(C[i] - C_cpp[i]) > tolerance) {
             opserr << "PML3DVISCOUS::verifyMatrices - Mismatch in C at element " << this->getTag() <<endln;
@@ -2653,7 +2653,7 @@ void PML3DVISCOUS::verifyMatrices() {
     
     // Compare G matrices
     tolerance = 0.1;
-    mismatchFound = true;
+    mismatchFound = false;
     for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
         if (fabs(G[i] - G_cpp[i]) > tolerance) {
             opserr << "PML3DVISCOUS::verifyMatrices - Mismatch in G at element " << this->getTag() <<endln;
@@ -2666,7 +2666,7 @@ void PML3DVISCOUS::verifyMatrices() {
     
     // Compare H matrices
     tolerance = 0.1;
-    mismatchFound = true;
+    mismatchFound = false;
     for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
         if (fabs(H[i] - H_cpp[i]) > tolerance) {
             opserr << "PML3DVISCOUS::verifyMatrices - Mismatch in H at element " << this->getTag() <<endln;
