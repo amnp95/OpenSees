@@ -809,13 +809,6 @@
         end do
 
 
-      ! print M_PML
-        write(*,*) 'M_PML :'
-         do i = 1,3*NNODE
-            write(*,*) (M_PML(i,j),j=1,72)
-         end do
-
-
 
       return
 
