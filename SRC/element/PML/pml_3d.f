@@ -946,10 +946,10 @@
       endif
 
       ! print each integration point and weight
-      do i = 1,n_points
-        write(6,*) 'Integration point ',i
-         write(6,*) 'xi = ',xi(1,i),xi(2,i),xi(3,i), ' weight = ',w(i)
-      end do
+      ! do i = 1,n_points
+      !   write(6,*) 'Integration point ',i
+      !    write(6,*) 'xi = ',xi(1,i),xi(2,i),xi(3,i), ' weight = ',w(i)
+      ! end do
         
 
       return

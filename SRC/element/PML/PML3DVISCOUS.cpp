@@ -202,19 +202,19 @@ PML3DVISCOUS::PML3DVISCOUS(int tag, int* nodeTags, double* nemwarks, double* ele
     Damp_beta = props[11];
 
     // print element properties
-    opserr << "Element properties:\n";
-    opserr << "E: " << E << "\n";
-    opserr << "xnu: " << xnu << "\n";
-    opserr << "rho: " << rho << "\n";
-    opserr << "eleTypeArg: " << eleTypeArg << "\n";
-    opserr << "PML_L: " << PML_L << "\n";
-    opserr << "afp: " << afp << "\n";
-    opserr << "PML_Rcoef: " << PML_Rcoef << "\n";
-    opserr << "RD_half_width_x: " << RD_half_width_x << "\n";
-    opserr << "RD_half_width_y: " << RD_half_width_y << "\n";
-    opserr << "RD_depth: " << RD_depth << "\n";
-    opserr << "Damp_alpha: " << Damp_alpha << "\n";
-    opserr << "Damp_beta: " << Damp_beta << "\n";
+    // opserr << "Element properties:\n";
+    // opserr << "E: " << E << "\n";
+    // opserr << "xnu: " << xnu << "\n";
+    // opserr << "rho: " << rho << "\n";
+    // opserr << "eleTypeArg: " << eleTypeArg << "\n";
+    // opserr << "PML_L: " << PML_L << "\n";
+    // opserr << "afp: " << afp << "\n";
+    // opserr << "PML_Rcoef: " << PML_Rcoef << "\n";
+    // opserr << "RD_half_width_x: " << RD_half_width_x << "\n";
+    // opserr << "RD_half_width_y: " << RD_half_width_y << "\n";
+    // opserr << "RD_depth: " << RD_depth << "\n";
+    // opserr << "Damp_alpha: " << Damp_alpha << "\n";
+    // opserr << "Damp_beta: " << Damp_beta << "\n";
 
     
 
