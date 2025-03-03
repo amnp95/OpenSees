@@ -645,6 +645,8 @@ void  PML3DVISCOUS::setDomain(Domain* theDomain)
 	}
 	// Call Fortran function
     pml3d_(M, C, K, G, H, &NDOFEL, props, coords, &MCRD, &NNODE, &LFLAGS);
+
+    calculateMassMatrix();
     
     // Verify the matrices
     verifyMatrices();
