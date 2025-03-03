@@ -833,25 +833,6 @@ void PML3DVISCOUS::calculateMassMatrix() {
     double M_PML[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF] = {0.0};
 
 
-    // print M_rd
-    opserr << "M_RD matrix:\n";
-    for (int i = 0; i < 24; i++) {
-        for (int j = 0; j < 24; j++) {
-            opserr << M_RD[i][j] << " ";
-        }
-        opserr << "\n";
-    }
-
-
-    // print M_a
-    opserr << "M_a matrix:\n";
-    for (int i = 0; i < 24; i++) {
-        for (int j = 0; j < 24; j++) {
-            opserr << M_a[i][j] << " ";
-        }
-        opserr << "\n";
-    }
-
 
     for (int i = 0; i < 3*PML3DVISCOUS_NUM_NODES; i++) {
         for (int j = 0; j < 3*PML3DVISCOUS_NUM_NODES; j++) {
@@ -873,35 +854,38 @@ void PML3DVISCOUS::calculateMassMatrix() {
         }
     }
 
-    
-    // Convert to final format for M_cpp (matching Fortran indexing)
-    for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 8; j++) {
+
+    // print M_pml
+    opserr << "M_PML matrix:\n";
+    for (int i = 0; i < 72; i++) {
+        for (int j = 0; j < 72; j++) {
+            opserr << M_PML[i*PML3DVISCOUS_NUM_DOF + j] << " ";
+        }
+        opserr << "\n";
+    }
+
+
+
+
+    for (int i = 1; i <= 8; i++) {
+        for (int j = 1; j <= 8; j++) {
             for (int k = 0; k < 9; k++) {
                 for (int l = 0; l < 9; l++) {
-                    int row = i*9 + k;
-                    int col = j*9 + l;
-                    
-                    // Determine source indices in M_PML
-                    int pml_row, pml_col;
-                    
-                    if (k < 3) {
-                        pml_row = i*3 + k;
-                    } else {
-                        pml_row = 24 + i*6 + (k-3);
-                    }
-                    
-                    if (l < 3) {
-                        pml_col = j*3 + l;
-                    } else {
-                        pml_col = 24 + j*6 + (l-3);
-                    }
-                    
-                    M_cpp[row*PML3DVISCOUS_NUM_DOF + col] = M_PML[pml_row*PML3DVISCOUS_NUM_DOF + pml_col];
+                    int row_tgt = (i - 1) * 9 + k;      // Target row index
+                    int col_tgt = (j - 1) * 9 + l;      // Target column index
+                    int row_src = (i - 1) + 8 * k;      // Source row index
+                    int col_src = (j - 1) + 8 * l;      // Source column index
+                    int idx_tgt = row_tgt * 72 + col_tgt;
+                    int idx_src = row_src * 72 + col_src;
+                    M_cpp[idx_tgt] = M_PML[idx_src];
                 }
             }
         }
     }
+    
+
+    
+
 
 }
 
