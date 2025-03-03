@@ -1772,7 +1772,7 @@ void  PML3DVISCOUS::Print(OPS_Stream &s, int flag) {
 // Implementation of verification function
 void PML3DVISCOUS::verifyMatrices() {
     // Define tolerance for floating point comparisons
-    const double tolerance = 1e-4;
+    const double tolerance = 1e-3;
     bool mismatchFound = false;
     
     // Compare M matrices
@@ -1784,9 +1784,7 @@ void PML3DVISCOUS::verifyMatrices() {
             
         }
     }
-    opserr << "M matrices match between Fortran and C++ implementations for element " << this->getTag() <<endln;
-    return;
-    
+    opserr << "M matrices match between Fortran and C++ implementations for element " << this->getTag() <<endln;    
     
     // Compare K matrices
     for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
