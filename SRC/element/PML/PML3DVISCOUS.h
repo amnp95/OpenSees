@@ -160,8 +160,8 @@ private:
 	double PML_L; 									// PML thickness
 	double afp; 									// alpha factor
 	double PML_Rcoef; 								// PML reflection coefficient
-	double alpha_M; 								// PML alpha rayleigh damping
-	double beta_K; 									// PML beta rayleigh damping
+	double Damp_alpha; 								// PML alpha rayleigh damping
+	double Damp_beta; 									// PML beta rayleigh damping
 	double RD_half_width_x;
     double RD_half_width_y;
     double RD_depth;

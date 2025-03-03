@@ -198,6 +198,8 @@ PML3DVISCOUS::PML3DVISCOUS(int tag, int* nodeTags, double* nemwarks, double* ele
     RD_half_width_x = props[7];
     RD_half_width_y = props[8];
     RD_depth = props[9];
+    Damp_alpha = props[10];
+    Damp_beta = props[11];
 
     // print element properties
     opserr << "Element properties:\n";
@@ -211,6 +213,8 @@ PML3DVISCOUS::PML3DVISCOUS(int tag, int* nodeTags, double* nemwarks, double* ele
     opserr << "RD_half_width_x: " << RD_half_width_x << "\n";
     opserr << "RD_half_width_y: " << RD_half_width_y << "\n";
     opserr << "RD_depth: " << RD_depth << "\n";
+    opserr << "Damp_alpha: " << Damp_alpha << "\n";
+    opserr << "Damp_beta: " << Damp_beta << "\n";
 
     
 
@@ -828,7 +832,7 @@ void PML3DVISCOUS::calculateMassMatrix() {
     // Build the complete M_PML matrix based on element type
     double M_PML[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF] = {0.0};
 
-    
+
     // print M_rd
     opserr << "M_RD matrix:\n";
     for (int i = 0; i < 24; i++) {
@@ -849,35 +853,55 @@ void PML3DVISCOUS::calculateMassMatrix() {
     }
 
 
+    for (int i = 0; i < 3*PML3DVISCOUS_NUM_NODES; i++) {
+        for (int j = 0; j < 3*PML3DVISCOUS_NUM_NODES; j++) {
+            M_PML[i*PML3DVISCOUS_NUM_DOF + j] = M_a[i][j];
+        }
+    }
     
-    if (eleTypeArg == 1) {
-        // Regular domain - only M_RD is used
-        for (int i = 0; i < 3*PML3DVISCOUS_NUM_NODES; i++) {
-            for (int j = 0; j < 3*PML3DVISCOUS_NUM_NODES; j++) {
-                M_PML[i*PML3DVISCOUS_NUM_DOF + j] = M_RD[i][j];
-            }
-        }
-        opserr << "ERROR: PML mass matrix is not calculated for regular domain\n";
-        exit(-1);
-    } else {
-        // PML domain - M_a is used for upper-left block
-        for (int i = 0; i < 3*PML3DVISCOUS_NUM_NODES; i++) {
-            for (int j = 0; j < 3*PML3DVISCOUS_NUM_NODES; j++) {
-                M_PML[i*PML3DVISCOUS_NUM_DOF + j] = M_RD[i][j] + M_a[i][j];
-            }
-        }
-        
-        // Lower-right block with -N_a
-        for (int i = 0; i < 6*PML3DVISCOUS_NUM_NODES; i++) {
-            for (int j = 0; j < 6*PML3DVISCOUS_NUM_NODES; j++) {
-                M_PML[(i+3*PML3DVISCOUS_NUM_NODES)*PML3DVISCOUS_NUM_DOF + (j+3*PML3DVISCOUS_NUM_NODES)] = -N_a[i][j];
-            }
+    // // PML domain - A_eu * Damp_beta is used for upper-right block
+    // for (int i = 0; i < 3*PML3DVISCOUS_NUM_NODES; i++) {
+    //     for (int j = 3*PML3DVISCOUS_NUM_NODES; j < 9*PML3DVISCOUS_NUM_NODES; j++) {
+    //         M_PML[i*PML3DVISCOUS_NUM_DOF + j]  = A_eu[i][j-3*PML3DVISCOUS_NUM_NODES] * Damp_beta;
+    //     }
+    // }
+
+    // PML domain - N_a is used for lower-right block
+    for (int i = 3*PML3DVISCOUS_NUM_NODES; i < 9*PML3DVISCOUS_NUM_NODES; i++) {
+        for (int j = 3*PML3DVISCOUS_NUM_NODES; j < 9*PML3DVISCOUS_NUM_NODES; j++) {
+            M_PML[i*PML3DVISCOUS_NUM_DOF + j] = -N_a[i-3*PML3DVISCOUS_NUM_NODES][j-3*PML3DVISCOUS_NUM_NODES];
         }
     }
 
-
-
     
+    // Convert to final format for M_cpp (matching Fortran indexing)
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            for (int k = 0; k < 9; k++) {
+                for (int l = 0; l < 9; l++) {
+                    int row = i*9 + k;
+                    int col = j*9 + l;
+                    
+                    // Determine source indices in M_PML
+                    int pml_row, pml_col;
+                    
+                    if (k < 3) {
+                        pml_row = i*3 + k;
+                    } else {
+                        pml_row = 24 + i*6 + (k-3);
+                    }
+                    
+                    if (l < 3) {
+                        pml_col = j*3 + l;
+                    } else {
+                        pml_col = 24 + j*6 + (l-3);
+                    }
+                    
+                    M_cpp[row*PML3DVISCOUS_NUM_DOF + col] = M_PML[pml_row*PML3DVISCOUS_NUM_DOF + pml_col];
+                }
+            }
+        }
+    }
 
 }
 

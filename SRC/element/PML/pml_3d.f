@@ -817,10 +817,12 @@
          end do
 
       ! print M_PML
-        write(*,*) 'M_PML :'
+        write(*,*) 'M_a :'
          do i = 1,3*NNODE
-            write(*,*) (M_PML(i,j),j=1,3*NNODE)
+            write(*,*) (M_a(i,j),j=1,3*NNODE)
          end do
+
+         
 
       return
 
