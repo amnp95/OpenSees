@@ -114,6 +114,7 @@ double PML3DVISCOUS::C_cpp[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF] = {0};
 double PML3DVISCOUS::K_cpp[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF] = {0};
 double PML3DVISCOUS::G_cpp[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF] = {0};
 double PML3DVISCOUS::H_cpp[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF] = {0};
+double PML3DVISCOUS::Keff_cpp[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF] = {0};
 
 // =======================================================================
 // null constructor
@@ -978,6 +979,9 @@ void PML3DVISCOUS::calculateStiffnessMatrix() {
             }
         }
     }
+
+    // set tag 
+    K_Tag = this->getTag();
 }
 
 // =======================================================================
@@ -1015,15 +1019,15 @@ void  PML3DVISCOUS::setDomain(Domain* theDomain)
 	int MCRD = 3;
 	int NNODE = 8;
 	int LFLAGS = 12;
-	for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
-		C[i] = 0.0;
-		K[i] = 0.0;
-		M[i] = 0.0;
-		G[i] = 0.0;
-		H[i] = 0.0;
-	}
+	// for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
+	// 	C[i] = 0.0;
+	// 	K[i] = 0.0;
+	// 	M[i] = 0.0;
+	// 	G[i] = 0.0;
+	// 	H[i] = 0.0;
+	// }
 	// Call Fortran function
-    pml3d_(M, C, K, G, H, &NDOFEL, props, coords, &MCRD, &NNODE, &LFLAGS);
+    // pml3d_(M, C, K, G, H, &NDOFEL, props, coords, &MCRD, &NNODE, &LFLAGS);
 
     calculateMassMatrix();
     calculateStiffnessMatrix();
@@ -1032,7 +1036,7 @@ void  PML3DVISCOUS::setDomain(Domain* theDomain)
     calculateHMatrix();
     
     // Verify the matrices
-    verifyMatrices();
+    // verifyMatrices();
     
     dt = theDomain->getDT();
 	int tag = this->getTag();
@@ -1369,6 +1373,10 @@ void PML3DVISCOUS::calculateMassMatrix() {
             }
         }
     }
+
+
+    // set M_tag to the tag of this object
+    M_Tag = this->getTag();
 }
 // =======================================================================
 // calculateDampingMatrix
@@ -1690,6 +1698,10 @@ void PML3DVISCOUS::calculateDampingMatrix() {
             }
         }
     }
+
+
+    // set C_tag to the tag of this object
+    C_Tag = this->getTag();
 }
 // =======================================================================
 // calculate G matrix
@@ -1927,6 +1939,9 @@ void PML3DVISCOUS::calculateGMatrix() {
             }
         }
     }
+
+    // set G_tag to the tag of this object
+    G_Tag = this->getTag();
 }
 
 
@@ -2064,6 +2079,9 @@ void PML3DVISCOUS::calculateHMatrix() {
             }
         }
     }
+
+    // set H_tag to the tag of this object
+    H_Tag = this->getTag();
 }
 
 
@@ -2124,10 +2142,26 @@ const Matrix& PML3DVISCOUS::getTangentStiff()
     double keisi = 1.0/48.0;
     double ch = dt * dt * keisi/beta;
 	//keff = k + cg*g( k and g are symmetric matrices)
-	for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
-		Keff[i] = K[i] + cg*G[i] + ch*H[i];
-	}
-	tangent.setData(Keff, PML3DVISCOUS_NUM_DOF, PML3DVISCOUS_NUM_DOF);
+    int tag = this->getTag();
+    if (tag != K_Tag) {
+        this->calculateStiffnessMatrix();
+    }
+    if (tag != G_Tag) {
+        this->calculateGMatrix();
+    }
+    if (tag != H_Tag) {
+        this->calculateHMatrix();
+    }
+
+	// for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
+	// 	Keff[i] = K[i] + cg*G[i] + ch*H[i];
+	// }
+    // tangent.setData(Keff, PML3DVISCOUS_NUM_DOF, PML3DVISCOUS_NUM_DOF);
+
+    for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
+        Keff_cpp[i] = K_cpp[i] + cg*G_cpp[i] + ch*H_cpp[i];
+    }
+    tangent.setData(Keff_cpp, PML3DVISCOUS_NUM_DOF, PML3DVISCOUS_NUM_DOF);
 	return tangent;
 }
 
@@ -2144,8 +2178,11 @@ const Matrix& PML3DVISCOUS::getInitialStiff()
 // =======================================================================
 const Matrix& PML3DVISCOUS::getMass()
 {
-	mass.setData(M, PML3DVISCOUS_NUM_DOF, PML3DVISCOUS_NUM_DOF);
-	// mass.Zero();
+    if (this->getTag() != M_Tag) {
+        this->calculateMassMatrix();
+    }
+	// mass.setData(M, PML3DVISCOUS_NUM_DOF, PML3DVISCOUS_NUM_DOF);
+    mass.setData(M_cpp, PML3DVISCOUS_NUM_DOF, PML3DVISCOUS_NUM_DOF);
 	return mass;
 }
 
@@ -2154,8 +2191,11 @@ const Matrix& PML3DVISCOUS::getMass()
 // =======================================================================
 const Matrix& PML3DVISCOUS::getDamp()
 {
-	damping.setData(C, PML3DVISCOUS_NUM_DOF, PML3DVISCOUS_NUM_DOF);
-	// damping.Zero();
+    if (this->getTag() != C_Tag) {
+        this->calculateDampingMatrix();
+    }
+	// damping.setData(C, PML3DVISCOUS_NUM_DOF, PML3DVISCOUS_NUM_DOF);
+    damping.setData(C_cpp, PML3DVISCOUS_NUM_DOF, PML3DVISCOUS_NUM_DOF);
 	return damping;
 }
 
@@ -2172,7 +2212,11 @@ const Vector& PML3DVISCOUS::getResistingForce()
 	static Vector theVector(PML3DVISCOUS_NUM_DOF);
 
 	// get K into stiff
-	tangent.setData(K, PML3DVISCOUS_NUM_DOF, PML3DVISCOUS_NUM_DOF);
+    if (this->getTag() != K_Tag) {
+        this->calculateStiffnessMatrix();
+    }
+    tangent.setData(K_cpp, PML3DVISCOUS_NUM_DOF, PML3DVISCOUS_NUM_DOF);
+	// tangent.setData(K, PML3DVISCOUS_NUM_DOF, PML3DVISCOUS_NUM_DOF);
 
 	//
 	// perform: R = K * u
@@ -2198,7 +2242,11 @@ PML3DVISCOUS::getResistingForceIncInertia()
 {
     // R += K*u
 	static Vector theVector(PML3DVISCOUS_NUM_DOF);
-	tangent.setData(K, PML3DVISCOUS_NUM_DOF, PML3DVISCOUS_NUM_DOF);
+    if (this->getTag() != K_Tag) {
+        this->calculateStiffnessMatrix();
+    }
+    tangent.setData(K_cpp, PML3DVISCOUS_NUM_DOF, PML3DVISCOUS_NUM_DOF);
+	// tangent.setData(K, PML3DVISCOUS_NUM_DOF, PML3DVISCOUS_NUM_DOF);
 
 	int loc = 0;
 	for (int i = 0; i < PML3DVISCOUS_NUM_NODES; i++) {
@@ -2233,11 +2281,19 @@ PML3DVISCOUS::getResistingForceIncInertia()
 
 
 	// R += G*ubar
-	tangent.setData(G, PML3DVISCOUS_NUM_DOF, PML3DVISCOUS_NUM_DOF);
+    if (this->getTag() != G_Tag) {
+        this->calculateGMatrix();
+    }
+	// tangent.setData(G, PML3DVISCOUS_NUM_DOF, PML3DVISCOUS_NUM_DOF);
+    tangent.setData(G_cpp, PML3DVISCOUS_NUM_DOF, PML3DVISCOUS_NUM_DOF);
 	resid.addMatrixVector(1.0, tangent, ubar, 1.0);
 
     // R += H*ubarbar
-    tangent.setData(H, PML3DVISCOUS_NUM_DOF, PML3DVISCOUS_NUM_DOF);
+    // tangent.setData(H, PML3DVISCOUS_NUM_DOF, PML3DVISCOUS_NUM_DOF);
+    if (this->getTag() != H_Tag) {
+        this->calculateHMatrix();
+    }
+    tangent.setData(H_cpp, PML3DVISCOUS_NUM_DOF, PML3DVISCOUS_NUM_DOF);
     resid.addMatrixVector(1.0, tangent, ubarbar, 1.0);
 	
 	
@@ -2572,7 +2628,7 @@ void PML3DVISCOUS::verifyMatrices() {
     // Define tolerance for floating point comparisons
     double tolerance = 1e-3;
     bool mismatchFound = false;
-    
+    /*
     // Compare M matrices
     for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
         if (fabs(M[i] - M_cpp[i]) > tolerance) {
@@ -2637,4 +2693,5 @@ void PML3DVISCOUS::verifyMatrices() {
     }
     if (!mismatchFound)
         opserr << "H matrices match between Fortran and C++ implementations for element " << this->getTag() <<endln;
+    */
 }

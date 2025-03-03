@@ -118,12 +118,12 @@ private:
 	double props[PML3DVISCOUS_NUM_PROPS];                  // material properties
 	ID connectedExternalNodes;  					//eight node numbers
 	Node* nodePointers[PML3DVISCOUS_NUM_NODES];    	    //pointers to eight nodes
-	double K[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF];        // stiffness matrix
-	double C[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF];        // damping matrix
-	double M[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF];        // mass matrix
-    double G[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF];        // G matrix
-    double H[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF];        // H matrix
-	double Keff[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF];     // effective stiffness matrix
+	// double K[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF];        // stiffness matrix
+	// double C[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF];        // damping matrix
+	// double M[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF];        // mass matrix
+    // double G[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF];        // G matrix
+    // double H[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF];        // H matrix
+	// double Keff[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF];     // effective stiffness matrix
 	static double eta;                              // Newmark parameters: eta
 	static double beta; 					  	    // Newmark parameters: beta
 	static double gamma; 					  	// Newmark parameters: gamma
@@ -188,6 +188,16 @@ private:
     static double K_cpp[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF];  // Stiffness matrix from C++
     static double G_cpp[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF];  // G matrix from C++
     static double H_cpp[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF];  // H matrix from C++
+	static double Keff_cpp[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF];  // Effective stiffness matrix from C++
+
+
+
+	int M_Tag; 										// mass matrix tag
+	int C_Tag; 										// damping matrix tag
+	int K_Tag; 										// stiffness matrix tag
+	int G_Tag; 										// G matrix tag
+	int H_Tag; 										// H matrix tag
+	int Keff_Tag; 									// effective stiffness matrix tag
 };
 
 #endif
