@@ -1363,7 +1363,6 @@ void PML3DVISCOUS::calculateMassMatrix() {
         }
     }
     
-    // Reorder the matrix to match the expected format
     for (int i = 1; i <= 8; i++) {
         for (int j = 1; j <= 8; j++) {
             for (int k = 0; k < 9; k++) {
@@ -1372,8 +1371,8 @@ void PML3DVISCOUS::calculateMassMatrix() {
                     int col_tgt = (j - 1) * 9 + l;      // Target column index
                     int row_src = (i - 1) + 8 * k;      // Source row index
                     int col_src = (j - 1) + 8 * l;      // Source column index
-                    int idx_tgt = row_tgt * PML3DVISCOUS_NUM_DOF + col_tgt;
-                    int idx_src = row_src * PML3DVISCOUS_NUM_DOF + col_src;
+                    int idx_tgt = row_tgt * PML3DVISCOUS_NUM_DOF + col_tgt;  // Row-major for M_cpp
+                    int idx_src = row_src + col_src * PML3DVISCOUS_NUM_DOF;  // Column-major for M_PML
                     M_cpp[idx_tgt] = M_PML[idx_src];
                 }
             }
