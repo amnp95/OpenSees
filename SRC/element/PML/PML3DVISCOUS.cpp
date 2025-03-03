@@ -1392,9 +1392,10 @@ void PML3DVISCOUS::verifyMatrices() {
             opserr << "PML3DVISCOUS::verifyMatrices - Mismatch in M at element " << this->getTag() <<endln;
             opserr << "M[" << i << "] = " << M[i] << ", M_cpp[" << i << "] = " << M_cpp[i] <<endln;
             mismatchFound = true;
-            return;
+            
         }
     }
+    return;
     
     // Compare C matrices
     for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
