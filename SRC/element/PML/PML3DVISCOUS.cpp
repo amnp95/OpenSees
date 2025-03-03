@@ -1414,9 +1414,9 @@ void PML3DVISCOUS::calculateDampingMatrix() {
     double C_RD[24][24] = {{0.0}};  // Regular domain damping matrix
     double M_a[24][24] = {{0.0}};   // PML mass matrices
     double M_b[24][24] = {{0.0}};
-    double N_a[48][48] = {{0.0}};   // N matrices for PML
-    double N_b[48][48] = {{0.0}};
+    double N_b[48][48] = {{0.0}};   // N matrices for PML
     double A_eu[24][48] = {{0.0}};  // A matrices for PML
+    double A_pu[24][48] = {{0.0}};  // A matrices for PML
     
     // Process each integration point
     for (int kint = 0; kint < n_points; kint++) {
@@ -1474,7 +1474,7 @@ void PML3DVISCOUS::calculateDampingMatrix() {
             }
         }
 
-        // Strain-displacement matrix calculation
+        // Calculate strain-displacement matrix B
         double B[6][24] = {{0.0}};
         for (int i = 0; i < PML3DVISCOUS_NUM_NODES; i++) {
             B[0][i*3]     = dNdx[i][0];  // ε11 = ∂u/∂x
@@ -1488,7 +1488,7 @@ void PML3DVISCOUS::calculateDampingMatrix() {
             B[5][i*3+2]   = dNdx[i][1];  // γ23 = ∂w/∂y
         }
 
-        // Calculate elasticity matrix D (for stiffness calculation)
+        // Calculate elasticity matrix D
         double D[6][6] = {{0.0}};
         D[0][0] = D[1][1] = D[2][2] = lambda + 2*mu;
         D[0][1] = D[0][2] = D[1][0] = D[1][2] = D[2][0] = D[2][1] = lambda;
@@ -1512,12 +1512,15 @@ void PML3DVISCOUS::calculateDampingMatrix() {
                         pmlAlphaBeta[0][0] * pmlAlphaBeta[0][2] * pmlAlphaBeta[1][1] + 
                         pmlAlphaBeta[0][1] * pmlAlphaBeta[0][2] * pmlAlphaBeta[1][0];
         
-        // Calculate coefficients for Le, Lp, Lw matrices
+        // Calculate coefficients for Le, Lp matrices
         double coef_Le[3][3] = {{0.0}};
+        double coef_Lp[3][3] = {{0.0}};
         
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
                 coef_Le[i][j] = pmlAlphaBeta[0][i] * pmlAlphaBeta[0][j];
+                coef_Lp[i][j] = pmlAlphaBeta[0][i] * pmlAlphaBeta[1][j] + 
+                               pmlAlphaBeta[1][i] * pmlAlphaBeta[0][j];
             }
         }
         
@@ -1532,18 +1535,45 @@ void PML3DVISCOUS::calculateDampingMatrix() {
             Phi_z[i] = dNdx[i][2];
         }
         
-        // Calculate regular domain stiffness matrix K_RD
+        // Calculate stiffness matrix contribution - needed for Rayleigh damping
         for (int i = 0; i < PML3DVISCOUS_NUM_NODES; i++) {
             for (int j = 0; j < PML3DVISCOUS_NUM_NODES; j++) {
-                // Calculate element mass matrix contributions
+                // Calculate stiffness submatrices for K_RD
+                double Kxx = (lambda + 2.0 * mu) * Phi_x[i] * Phi_x[j] + 
+                            mu * (Phi_y[i] * Phi_y[j] + Phi_z[i] * Phi_z[j]);
+                            
+                double Kyy = (lambda + 2.0 * mu) * Phi_y[i] * Phi_y[j] + 
+                            mu * (Phi_x[i] * Phi_x[j] + Phi_z[i] * Phi_z[j]);
+                            
+                double Kzz = (lambda + 2.0 * mu) * Phi_z[i] * Phi_z[j] + 
+                            mu * (Phi_x[i] * Phi_x[j] + Phi_y[i] * Phi_y[j]);
+                
+                double Kxy = lambda * Phi_x[i] * Phi_y[j] + mu * Phi_y[i] * Phi_x[j];
+                double Kxz = lambda * Phi_x[i] * Phi_z[j] + mu * Phi_z[i] * Phi_x[j];
+                double Kyz = lambda * Phi_y[i] * Phi_z[j] + mu * Phi_z[i] * Phi_y[j];
+                
+                // Add to K_RD
+                K_RD[i][j] += Kxx * w[kint] * determinant;
+                K_RD[i+PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] += Kyy * w[kint] * determinant;
+                K_RD[i+2*PML3DVISCOUS_NUM_NODES][j+2*PML3DVISCOUS_NUM_NODES] += Kzz * w[kint] * determinant;
+                
+                K_RD[i][j+PML3DVISCOUS_NUM_NODES] += Kxy * w[kint] * determinant;
+                K_RD[i][j+2*PML3DVISCOUS_NUM_NODES] += Kxz * w[kint] * determinant;
+                K_RD[i+PML3DVISCOUS_NUM_NODES][j+2*PML3DVISCOUS_NUM_NODES] += Kyz * w[kint] * determinant;
+                
+                K_RD[i+PML3DVISCOUS_NUM_NODES][j] += Kxy * w[kint] * determinant;
+                K_RD[i+2*PML3DVISCOUS_NUM_NODES][j] += Kxz * w[kint] * determinant;
+                K_RD[i+2*PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] += Kyz * w[kint] * determinant;
+                
+                // Calculate mass term and mass matrices
                 double mass_term = rho * N[i] * N[j] * w[kint] * determinant;
                 M_RD[i][j] += mass_term;
                 
-                // PML mass matrix contributions
+                // PML mass matrices
                 M_a[i][j] += coef_a * mass_term;
                 M_b[i][j] += coef_b * mass_term;
                 
-                // Calculate A_eu matrix for coupling between displacement and internal variables
+                // Calculate A_eu, A_pu matrices
                 A_eu[i][j] += Phi_x[i] * N[j] * coef_Le[1][2] * w[kint] * determinant;
                 A_eu[i][j+PML3DVISCOUS_NUM_NODES*3] += Phi_y[i] * N[j] * coef_Le[0][2] * w[kint] * determinant;
                 A_eu[i][j+PML3DVISCOUS_NUM_NODES*4] += Phi_z[i] * N[j] * coef_Le[0][1] * w[kint] * determinant;
@@ -1555,14 +1585,26 @@ void PML3DVISCOUS::calculateDampingMatrix() {
                 A_eu[i+PML3DVISCOUS_NUM_NODES*2][j+PML3DVISCOUS_NUM_NODES*2] += Phi_z[i] * N[j] * coef_Le[0][1] * w[kint] * determinant;
                 A_eu[i+PML3DVISCOUS_NUM_NODES*2][j+PML3DVISCOUS_NUM_NODES*4] += Phi_x[i] * N[j] * coef_Le[1][2] * w[kint] * determinant;
                 A_eu[i+PML3DVISCOUS_NUM_NODES*2][j+PML3DVISCOUS_NUM_NODES*5] += Phi_y[i] * N[j] * coef_Le[0][2] * w[kint] * determinant;
+                
+                // A_pu matrix
+                A_pu[i][j] += Phi_x[i] * N[j] * coef_Lp[1][2] * w[kint] * determinant;
+                A_pu[i][j+PML3DVISCOUS_NUM_NODES*3] += Phi_y[i] * N[j] * coef_Lp[0][2] * w[kint] * determinant;
+                A_pu[i][j+PML3DVISCOUS_NUM_NODES*4] += Phi_z[i] * N[j] * coef_Lp[0][1] * w[kint] * determinant;
+                
+                A_pu[i+PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] += Phi_y[i] * N[j] * coef_Lp[0][2] * w[kint] * determinant;
+                A_pu[i+PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES*3] += Phi_x[i] * N[j] * coef_Lp[1][2] * w[kint] * determinant;
+                A_pu[i+PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES*5] += Phi_z[i] * N[j] * coef_Lp[0][1] * w[kint] * determinant;
+                
+                A_pu[i+PML3DVISCOUS_NUM_NODES*2][j+PML3DVISCOUS_NUM_NODES*2] += Phi_z[i] * N[j] * coef_Lp[0][1] * w[kint] * determinant;
+                A_pu[i+PML3DVISCOUS_NUM_NODES*2][j+PML3DVISCOUS_NUM_NODES*4] += Phi_x[i] * N[j] * coef_Lp[1][2] * w[kint] * determinant;
+                A_pu[i+PML3DVISCOUS_NUM_NODES*2][j+PML3DVISCOUS_NUM_NODES*5] += Phi_y[i] * N[j] * coef_Lp[0][2] * w[kint] * determinant;
             }
         }
     }
     
-    // Extend mass matrices to other dimensions (x, y, z)
+    // Copy values for extended mass and stiffness matrices
     for (int i = 0; i < PML3DVISCOUS_NUM_NODES; i++) {
         for (int j = 0; j < PML3DVISCOUS_NUM_NODES; j++) {
-            // Copy x-direction entries to y and z directions
             M_RD[i+PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] = M_RD[i][j];
             M_RD[i+2*PML3DVISCOUS_NUM_NODES][j+2*PML3DVISCOUS_NUM_NODES] = M_RD[i][j];
             
@@ -1577,87 +1619,23 @@ void PML3DVISCOUS::calculateDampingMatrix() {
     // Calculate Rayleigh damping for regular domain: C_RD = alpha*M_RD + beta*K_RD
     for (int i = 0; i < 3*PML3DVISCOUS_NUM_NODES; i++) {
         for (int j = 0; j < 3*PML3DVISCOUS_NUM_NODES; j++) {
-            C_RD[i][j] = Damp_alpha * M_RD[i][j]; // Alpha component of Rayleigh damping
-            // The beta component (beta*K_RD) is added separately when calculating the full damping matrix
+            C_RD[i][j] = Damp_alpha * M_RD[i][j] + Damp_beta * K_RD[i][j];
         }
     }
     
-    // Calculate N_a matrix for PML formulation
-    for (int i = 0; i < PML3DVISCOUS_NUM_NODES; i++) {
-        for (int j = 0; j < PML3DVISCOUS_NUM_NODES; j++) {
-            // Block (1,1)
-            N_a[i][j] = M_a[i][j]/rho*(lambda+mu)/mu/(3.0*lambda+2.0*mu);
-            
-            // Block (1,2)
-            N_a[i][j+PML3DVISCOUS_NUM_NODES] = -M_a[i][j]/rho*lambda/mu/2.0/(3.0*lambda+2.0*mu);
-            
-            // Block (1,3)
-            N_a[i][j+2*PML3DVISCOUS_NUM_NODES] = -M_a[i][j]/rho*lambda/mu/2.0/(3.0*lambda+2.0*mu);
-            
-            // Block (2,1)
-            N_a[i+PML3DVISCOUS_NUM_NODES][j] = -M_a[i][j]/rho*lambda/mu/2.0/(3.0*lambda+2.0*mu);
-            
-            // Block (2,2)
-            N_a[i+PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] = 
-                M_a[i][j]/rho*(lambda+mu)/mu/(3.0*lambda+2.0*mu);
-            
-            // Block (2,3)
-            N_a[i+PML3DVISCOUS_NUM_NODES][j+2*PML3DVISCOUS_NUM_NODES] = 
-                -M_a[i][j]/rho*lambda/mu/2.0/(3.0*lambda+2.0*mu);
-            
-            // Block (3,1)
-            N_a[i+2*PML3DVISCOUS_NUM_NODES][j] = -M_a[i][j]/rho*lambda/mu/2.0/(3.0*lambda+2.0*mu);
-            
-            // Block (3,2)
-            N_a[i+2*PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] = 
-                -M_a[i][j]/rho*lambda/mu/2.0/(3.0*lambda+2.0*mu);
-            
-            // Block (3,3)
-            N_a[i+2*PML3DVISCOUS_NUM_NODES][j+2*PML3DVISCOUS_NUM_NODES] = 
-                M_a[i][j]/rho*(lambda+mu)/mu/(3.0*lambda+2.0*mu);
-            
-            // Blocks for shear components
-            N_a[i+3*PML3DVISCOUS_NUM_NODES][j+3*PML3DVISCOUS_NUM_NODES] = M_a[i][j]/rho/mu;
-            N_a[i+4*PML3DVISCOUS_NUM_NODES][j+4*PML3DVISCOUS_NUM_NODES] = M_a[i][j]/rho/mu;
-            N_a[i+5*PML3DVISCOUS_NUM_NODES][j+5*PML3DVISCOUS_NUM_NODES] = M_a[i][j]/rho/mu;
-        }
-    }
-
     // Calculate N_b matrix for PML formulation
     for (int i = 0; i < PML3DVISCOUS_NUM_NODES; i++) {
         for (int j = 0; j < PML3DVISCOUS_NUM_NODES; j++) {
-            // Block (1,1)
+            // Calculate N_b matrix
             N_b[i][j] = M_b[i][j]/rho*(lambda+mu)/mu/(3.0*lambda+2.0*mu);
-            
-            // Block (1,2)
-            N_b[i][j+PML3DVISCOUS_NUM_NODES] = -M_b[i][j]/rho*lambda/mu/2.0/(3.0*lambda+2.0*mu);
-            
-            // Block (1,3)
-            N_b[i][j+2*PML3DVISCOUS_NUM_NODES] = -M_b[i][j]/rho*lambda/mu/2.0/(3.0*lambda+2.0*mu);
-            
-            // Block (2,1)
-            N_b[i+PML3DVISCOUS_NUM_NODES][j] = -M_b[i][j]/rho*lambda/mu/2.0/(3.0*lambda+2.0*mu);
-            
-            // Block (2,2)
-            N_b[i+PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] = 
-                M_b[i][j]/rho*(lambda+mu)/mu/(3.0*lambda+2.0*mu);
-            
-            // Block (2,3)
-            N_b[i+PML3DVISCOUS_NUM_NODES][j+2*PML3DVISCOUS_NUM_NODES] = 
-                -M_b[i][j]/rho*lambda/mu/2.0/(3.0*lambda+2.0*mu);
-            
-            // Block (3,1)
-            N_b[i+2*PML3DVISCOUS_NUM_NODES][j] = -M_b[i][j]/rho*lambda/mu/2.0/(3.0*lambda+2.0*mu);
-            
-            // Block (3,2)
-            N_b[i+2*PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] = 
-                -M_b[i][j]/rho*lambda/mu/2.0/(3.0*lambda+2.0*mu);
-            
-            // Block (3,3)
-            N_b[i+2*PML3DVISCOUS_NUM_NODES][j+2*PML3DVISCOUS_NUM_NODES] = 
-                M_b[i][j]/rho*(lambda+mu)/mu/(3.0*lambda+2.0*mu);
-            
-            // Blocks for shear components
+            N_b[i][j+PML3DVISCOUS_NUM_NODES] = -M_b[i][j]/rho*(lambda)/mu/2.0/(3.0*lambda+2.0*mu);
+            N_b[i][j+2*PML3DVISCOUS_NUM_NODES] = -M_b[i][j]/rho*(lambda)/mu/2.0/(3.0*lambda+2.0*mu);
+            N_b[i+PML3DVISCOUS_NUM_NODES][j] = -M_b[i][j]/rho*(lambda)/mu/2.0/(3.0*lambda+2.0*mu);
+            N_b[i+PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] = M_b[i][j]/rho*(lambda+mu)/mu/(3.0*lambda+2.0*mu);
+            N_b[i+PML3DVISCOUS_NUM_NODES][j+2*PML3DVISCOUS_NUM_NODES] = -M_b[i][j]/rho*(lambda)/mu/2.0/(3.0*lambda+2.0*mu);
+            N_b[i+2*PML3DVISCOUS_NUM_NODES][j] = -M_b[i][j]/rho*(lambda)/mu/2.0/(3.0*lambda+2.0*mu);
+            N_b[i+2*PML3DVISCOUS_NUM_NODES][j+PML3DVISCOUS_NUM_NODES] = -M_b[i][j]/rho*(lambda)/mu/2.0/(3.0*lambda+2.0*mu);
+            N_b[i+2*PML3DVISCOUS_NUM_NODES][j+2*PML3DVISCOUS_NUM_NODES] = M_b[i][j]/rho*(lambda+mu)/mu/(3.0*lambda+2.0*mu);
             N_b[i+3*PML3DVISCOUS_NUM_NODES][j+3*PML3DVISCOUS_NUM_NODES] = M_b[i][j]/rho/mu;
             N_b[i+4*PML3DVISCOUS_NUM_NODES][j+4*PML3DVISCOUS_NUM_NODES] = M_b[i][j]/rho/mu;
             N_b[i+5*PML3DVISCOUS_NUM_NODES][j+5*PML3DVISCOUS_NUM_NODES] = M_b[i][j]/rho/mu;
@@ -1688,10 +1666,8 @@ void PML3DVISCOUS::calculateDampingMatrix() {
         // Upper-right block: A_pu*Damp_beta + A_eu
         for (int i = 0; i < 3*PML3DVISCOUS_NUM_NODES; i++) {
             for (int j = 0; j < 6*PML3DVISCOUS_NUM_NODES; j++) {
-                // This part is present in the Fortran code but was missing in the C++ implementation
-                // Note that A_pu would need to be calculated correctly for this to work
-                // Since we don't have A_pu here, we're using A_eu which we've calculated
-                C_PML[i*PML3DVISCOUS_NUM_DOF + j + 3*PML3DVISCOUS_NUM_NODES] = A_eu[i][j];
+                C_PML[i*PML3DVISCOUS_NUM_DOF + j + 3*PML3DVISCOUS_NUM_NODES] = 
+                    A_pu[i][j]*Damp_beta + A_eu[i][j];
             }
         }
         
@@ -1712,7 +1688,6 @@ void PML3DVISCOUS::calculateDampingMatrix() {
     }
     
     // Reorder the matrix for the expected format
-    // This is necessary because Fortran uses column-major order and we're using row-major order
     for (int i = 1; i <= 8; i++) {
         for (int j = 1; j <= 8; j++) {
             for (int k = 0; k < 9; k++) {
@@ -1729,7 +1704,6 @@ void PML3DVISCOUS::calculateDampingMatrix() {
         }
     }
 }
-
 // =======================================================================
 // calculate G matrix
 // =======================================================================
