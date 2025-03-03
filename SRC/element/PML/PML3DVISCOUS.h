@@ -133,8 +133,8 @@ private:
 	static Matrix damping;	 					    // damping matrix
 	
 	// Add static variables for integration points and weights
-    static double xi[3][64];                        // integration points coordinates
-    static double w[64];                            // integration weights
+    static double xi[3][27];                        // integration points coordinates
+    static double w[27];                            // integration weights
     static int numIntegrationPoints;                // number of integration points
     static bool integrationInitialized;             // flag to check if integration points are initialized
     
@@ -145,10 +145,27 @@ private:
     static void calculateShapeFunctions(const double* xi, int n_nodes, double* N, double (*dNdxi)[3]);
     
     // Add function to calculate PML alpha and beta parameters
-    static void calculatePMLParameters(const double* props, double x1, double x2, double x3, double (*pmlAlphaBeta)[3]);
+    void calculatePMLParameters(double x1, double x2, double x3, double (*pmlAlphaBeta)[3]);
     
     // Add function to verify matrices from Fortran and C++
     void verifyMatrices();
+	void calculateMassMatrix();
+
+
+	// properties
+	double E; 										// Young's modulus
+	double xnu; 									// Poisson's ratio
+	double rho; 									// mass density
+	int eleTypeArg; 								// element type position
+	double PML_L; 									// PML thickness
+	double afp; 									// alpha factor
+	double PML_Rcoef; 								// PML reflection coefficient
+	double alpha_M; 								// PML alpha rayleigh damping
+	double beta_K; 									// PML beta rayleigh damping
+	double RD_half_width_x;
+    double RD_half_width_y;
+    double RD_depth;
+	 
     
 	Vector ubart; 				                    // ubar at time t 
     Vector ubarbart;                                // ubarbar at time t

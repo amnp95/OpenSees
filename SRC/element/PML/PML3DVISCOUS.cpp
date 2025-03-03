@@ -104,8 +104,8 @@ double  PML3DVISCOUS::dt = 0.;
 int     PML3DVISCOUS::eleCount = 0;
 
 // Initialize integration points and weights
-double  PML3DVISCOUS::xi[3][64] = {{0.0}};
-double  PML3DVISCOUS::w[64] = {0.0};
+double  PML3DVISCOUS::xi[3][27] = {{0.0}};
+double  PML3DVISCOUS::w[27] = {0.0};
 bool    PML3DVISCOUS::integrationInitialized = false;
 
 // Initialize static matrices
@@ -115,7 +115,117 @@ double PML3DVISCOUS::K_cpp[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF] = {0};
 double PML3DVISCOUS::G_cpp[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF] = {0};
 double PML3DVISCOUS::H_cpp[PML3DVISCOUS_NUM_DOF * PML3DVISCOUS_NUM_DOF] = {0};
 
-// Implementation of the integration points and weights initialization function
+// =======================================================================
+// null constructor
+// =======================================================================
+PML3DVISCOUS::PML3DVISCOUS()
+	:Element(0, ELE_TAG_PML3DVISCOUS),
+	connectedExternalNodes(PML3DVISCOUS_NUM_NODES),
+	ubar(PML3DVISCOUS_NUM_DOF),
+	ubart(PML3DVISCOUS_NUM_DOF),
+    ubarbar(PML3DVISCOUS_NUM_DOF),
+    ubarbart(PML3DVISCOUS_NUM_DOF)
+{
+    // Initialize integration points and weights with default values
+    if (!integrationInitialized) {
+        initializeIntegrationPointsAndWeights(27, PML3DVISCOUS_NUM_NODES); // Default to 27-point integration
+    }
+    
+    for (int i = 0; i < PML3DVISCOUS_NUM_NODES; i++) {
+        nodePointers[i] = 0;
+    }
+	dt = 0;
+	ubar.Zero();
+	ubart.Zero();
+    ubarbar.Zero();
+    ubarbart.Zero();
+	updateflag = 0;
+	update_dt = 0;
+	eta = 0;
+	beta = 0;
+	gamma = 0;
+	
+}
+
+// =======================================================================
+// Full constructor
+// =======================================================================
+PML3DVISCOUS::PML3DVISCOUS(int tag, int* nodeTags, double* nemwarks, double* eleData)
+	:Element(tag, ELE_TAG_PML3DVISCOUS),
+	connectedExternalNodes(PML3DVISCOUS_NUM_NODES),
+	ubar(PML3DVISCOUS_NUM_DOF),
+	ubart(PML3DVISCOUS_NUM_DOF),
+    ubarbar(PML3DVISCOUS_NUM_DOF),
+    ubarbart(PML3DVISCOUS_NUM_DOF)
+{
+	eleCount++;
+	if (eleCount == 1) {
+		opserr << "Perfectly Matched Layer 3D (PMLVISCOUS) element -  Written: W. Zhang, E. Taciroglu, A. Pakzad, P. Arduino, UCLA, U.Washington\n ";
+	}
+    
+    // Initialize integration points and weights with default values
+    if (!integrationInitialized) {
+        // Check if afp parameter is less than 3.0 for integration point selection
+        if (eleData[5] < 3.0) { // afp parameter is at index 5
+            initializeIntegrationPointsAndWeights(27, PML3DVISCOUS_NUM_NODES);
+        } else {
+            initializeIntegrationPointsAndWeights(64, PML3DVISCOUS_NUM_NODES);
+        }
+    }
+    
+	// initialize node pointers
+	for (int i = 0; i < PML3DVISCOUS_NUM_NODES; i++) {
+		connectedExternalNodes(i) = nodeTags[i];
+		nodePointers[i] = 0;
+	}
+
+	// initialize Newmark parameters
+	eta   = nemwarks[0];
+	beta  = nemwarks[1];
+	gamma = nemwarks[2];
+
+	// initialize material properties
+	for (int i = 0; i < PML3DVISCOUS_NUM_PROPS; i++)
+		props[i] = eleData[i];
+
+    E   = props[0];
+    xnu = props[1];
+    rho = props[2];
+    eleTypeArg = (int)props[3];
+    PML_L = props[4];
+    afp = props[5];
+    PML_Rcoef = props[6];
+    RD_half_width_x = props[7];
+    RD_half_width_y = props[8];
+    RD_depth = props[9];
+
+    // print element properties
+    opserr << "Element properties:\n";
+    opserr << "E: " << E << "\n";
+    opserr << "xnu: " << xnu << "\n";
+    opserr << "rho: " << rho << "\n";
+    opserr << "eleTypeArg: " << eleTypeArg << "\n";
+    opserr << "PML_L: " << PML_L << "\n";
+    opserr << "afp: " << afp << "\n";
+    opserr << "PML_Rcoef: " << PML_Rcoef << "\n";
+    opserr << "RD_half_width_x: " << RD_half_width_x << "\n";
+    opserr << "RD_half_width_y: " << RD_half_width_y << "\n";
+    opserr << "RD_depth: " << RD_depth << "\n";
+
+    
+
+	// initialize the ubar and ubart vectors to zero
+	ubart.Zero();
+	ubar.Zero();
+    ubarbar.Zero();
+    ubarbart.Zero();
+	updateflag = 0;
+	update_dt = 0;
+}
+
+// =======================================================================
+//  Integration points and weights
+// =======================================================================
 void PML3DVISCOUS::initializeIntegrationPointsAndWeights(int n_points, int n_nodes) {
     // If already initialized, return
     if (integrationInitialized) return;
@@ -130,32 +240,9 @@ void PML3DVISCOUS::initializeIntegrationPointsAndWeights(int n_points, int n_nod
     }
     // Hexahedral elements
     if (n_nodes == 8) {
-        if (n_points == 1) {
-            xi[0][0] = 0.0;
-            xi[1][0] = 0.0;
-            xi[2][0] = 0.0;
-            w[0] = 8.0;
-        }
-        else if (n_points == 8) {
-            double x1D[2] = {-0.5773502692, 0.5773502692};
-            
-            int n = 0;
-            for (int k = 0; k < 2; k++) {
-                for (int j = 0; j < 2; j++) {
-                    for (int i = 0; i < 2; i++) {
-                        xi[0][n] = x1D[i];
-                        xi[1][n] = x1D[j];
-                        xi[2][n] = x1D[k];
-                        w[n] = 1.0;
-                        n++;
-                    }
-                }
-            }
-        }
-        else if (n_points == 27) {
+        if (n_points == 27) {
             double x1D[3] = {-0.7745966692, 0.0, 0.7745966692};
             double w1D[3] = {0.5555555555, 0.888888888, 0.55555555555};
-            
             int n = 0;
             for (int k = 0; k < 3; k++) {
                 for (int j = 0; j < 3; j++) {
@@ -168,30 +255,17 @@ void PML3DVISCOUS::initializeIntegrationPointsAndWeights(int n_points, int n_nod
                     }
                 }
             }
+        } else
+        {
+            opserr << "ERROR: PML3DVISCOUS element only supports 27 integration points for 8-node hexahedral elements\n";
+            exit(-1);
         }
-        else if (n_points == 64) {
-            double x1D[4] = {0.8611363115940526, 0.3399810435848563, 
-                            -0.3399810435848563, -0.8611363115940526};
-            double w1D[4] = {0.3478548451374538, 0.6521451548625461, 
-                             0.6521451548625461, 0.3478548451374538};
-            
-            int n = 0;
-            for (int k = 0; k < 4; k++) {
-                for (int j = 0; j < 4; j++) {
-                    for (int i = 0; i < 4; i++) {
-                        xi[0][n] = x1D[i];
-                        xi[1][n] = x1D[j];
-                        xi[2][n] = x1D[k];
-                        w[n] = w1D[i] * w1D[j] * w1D[k];
-                        n++;
-                    }
-                }
-            }
-        }
+    } else {
+        opserr << "ERROR: PML3DVISCOUS element only supports Hexahedral elements with 8 nodes\n";
+        exit(-1);
     }
+
     integrationInitialized = true;
-
-
     // # if the element tag is equal to 1, print the integration points and weights
     if (eleCount == 1) {
         opserr << "Integration points and weights:\n";
@@ -201,7 +275,9 @@ void PML3DVISCOUS::initializeIntegrationPointsAndWeights(int n_points, int n_nod
     }
 }
 
-// Implementation of shape functions calculation
+// =======================================================================
+//  shape functions
+// =======================================================================
 void PML3DVISCOUS::calculateShapeFunctions(const double* xi, int n_nodes, double* N, double (*dNdxi)[3]) {
     // Local variables
     double xi4;
@@ -260,19 +336,10 @@ void PML3DVISCOUS::calculateShapeFunctions(const double* xi, int n_nodes, double
 	}
 }
 
-// Implementation of PML parameters calculation function
-void PML3DVISCOUS::calculatePMLParameters(const double* props, double x1, double x2, double x3, double (*pmlAlphaBeta)[3]) {
-    // Extract properties
-    double E = props[0];
-    double xnu = props[1];
-    double rho = props[2];
-    int eleTypeArg = (int)props[3];
-    double PML_L = props[4];
-    double afp = props[5];
-    double PML_Rcoef = props[6];
-    double RD_half_width_x = props[7];
-    double RD_half_width_y = props[8];
-    double RD_depth = props[9];
+// =======================================================================
+//  calculatePMLParameters
+// =======================================================================
+void PML3DVISCOUS::calculatePMLParameters(double x1, double x2, double x3, double (*pmlAlphaBeta)[3]) {
     
     // Initialize normal vectors and reference coordinates
     double n1 = 0.0;
@@ -506,6 +573,9 @@ void PML3DVISCOUS::calculatePMLParameters(const double* props, double x1, double
                 pmlAlphaBeta[i][j] = 0.0;
             }
         }
+        // raise error to check the parameters and try to fix the issue
+        opserr << "ERROR: PML parameters are not calculated for regular domain\n";
+        exit(EXIT_FAILURE);
     } else {
         // PML domain - calculate stretching parameters
         double PML_b = PML_L / 1.0;
@@ -529,146 +599,6 @@ void PML3DVISCOUS::calculatePMLParameters(const double* props, double x1, double
         opserr << "Alpha: (" << pmlAlphaBeta[0][0] << ", " << pmlAlphaBeta[0][1] << ", " << pmlAlphaBeta[0][2] << ")\n";
         opserr << "Beta: (" << pmlAlphaBeta[1][0] << ", " << pmlAlphaBeta[1][1] << ", " << pmlAlphaBeta[1][2] << ")\n";
     }
-}
-
-
-// Implementation of verification function
-void PML3DVISCOUS::verifyMatrices() {
-    // Define tolerance for floating point comparisons
-    const double tolerance = 1e-3;
-    bool mismatchFound = false;
-    
-    // Compare M matrices
-    for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
-        if (fabs(M[i] - M_cpp[i]) > tolerance) {
-            opserr << "PML3DVISCOUS::verifyMatrices - Mismatch in M at element " << this->getTag() <<endln;
-            mismatchFound = true;
-            return;
-        }
-    }
-    
-    // Compare C matrices
-    for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
-        if (fabs(C[i] - C_cpp[i]) > tolerance) {
-            opserr << "PML3DVISCOUS::verifyMatrices - Mismatch in C at element " << this->getTag() <<endln;
-            mismatchFound = true;
-            return;
-        }
-    }
-    
-    // Compare K matrices
-    for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
-        if (fabs(K[i] - K_cpp[i]) > tolerance) {
-            opserr << "PML3DVISCOUS::verifyMatrices - Mismatch in K at element " << this->getTag() <<endln;
-            mismatchFound = true;
-            return;
-
-        }
-    }
-    
-    // Compare G matrices
-    for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
-        if (fabs(G[i] - G_cpp[i]) > tolerance) {
-            opserr << "PML3DVISCOUS::verifyMatrices - Mismatch in G at element " << this->getTag() <<endln;
-            mismatchFound = true;
-            return;
-        }
-    }
-    
-    // Compare H matrices
-    for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
-        if (fabs(H[i] - H_cpp[i]) > tolerance) {
-            opserr << "PML3DVISCOUS::verifyMatrices - Mismatch in H at element " << this->getTag() <<endln;
-            mismatchFound = true;
-            return;
-        }
-    }
-    
-    if (!mismatchFound) {
-        opserr << "PML3DVISCOUS::verifyMatrices - All matrices match between Fortran and C++ implementations for element " << this->getTag() <<endln;
-    }
-}
-
-// =======================================================================
-// null constructor
-// =======================================================================
-PML3DVISCOUS::PML3DVISCOUS()
-	:Element(0, ELE_TAG_PML3DVISCOUS),
-	connectedExternalNodes(PML3DVISCOUS_NUM_NODES),
-	ubar(PML3DVISCOUS_NUM_DOF),
-	ubart(PML3DVISCOUS_NUM_DOF),
-    ubarbar(PML3DVISCOUS_NUM_DOF),
-    ubarbart(PML3DVISCOUS_NUM_DOF)
-{
-    // Initialize integration points and weights with default values
-    if (!integrationInitialized) {
-        initializeIntegrationPointsAndWeights(27, PML3DVISCOUS_NUM_NODES); // Default to 27-point integration
-    }
-    
-    for (int i = 0; i < PML3DVISCOUS_NUM_NODES; i++) {
-        nodePointers[i] = 0;
-    }
-	dt = 0;
-	ubar.Zero();
-	ubart.Zero();
-    ubarbar.Zero();
-    ubarbart.Zero();
-	updateflag = 0;
-	update_dt = 0;
-	eta = 0;
-	beta = 0;
-	gamma = 0;
-	
-}
-
-// =======================================================================
-// Full constructor
-// =======================================================================
-PML3DVISCOUS::PML3DVISCOUS(int tag, int* nodeTags, double* nemwarks, double* eleData)
-	:Element(tag, ELE_TAG_PML3DVISCOUS),
-	connectedExternalNodes(PML3DVISCOUS_NUM_NODES),
-	ubar(PML3DVISCOUS_NUM_DOF),
-	ubart(PML3DVISCOUS_NUM_DOF),
-    ubarbar(PML3DVISCOUS_NUM_DOF),
-    ubarbart(PML3DVISCOUS_NUM_DOF)
-{
-	eleCount++;
-	if (eleCount == 1) {
-		opserr << "Perfectly Matched Layer 3D (PMLVISCOUS) element -  Written: W. Zhang, E. Taciroglu, A. Pakzad, P. Arduino, UCLA, U.Washington\n ";
-	}
-    
-    // Initialize integration points and weights with default values
-    if (!integrationInitialized) {
-        // Check if afp parameter is less than 3.0 for integration point selection
-        if (eleData[5] < 3.0) { // afp parameter is at index 5
-            initializeIntegrationPointsAndWeights(27, PML3DVISCOUS_NUM_NODES);
-        } else {
-            initializeIntegrationPointsAndWeights(64, PML3DVISCOUS_NUM_NODES);
-        }
-    }
-    
-	// initialize node pointers
-	for (int i = 0; i < PML3DVISCOUS_NUM_NODES; i++) {
-		connectedExternalNodes(i) = nodeTags[i];
-		nodePointers[i] = 0;
-	}
-
-	// initialize Newmark parameters
-	eta   = nemwarks[0];
-	beta  = nemwarks[1];
-	gamma = nemwarks[2];
-
-	// initialize material properties
-	for (int i = 0; i < PML3DVISCOUS_NUM_PROPS; i++)
-		props[i] = eleData[i];
-
-	// initialize the ubar and ubart vectors to zero
-	ubart.Zero();
-	ubar.Zero();
-    ubarbar.Zero();
-    ubarbart.Zero();
-	updateflag = 0;
-	update_dt = 0;
 }
 
 // =======================================================================
@@ -715,15 +645,6 @@ void  PML3DVISCOUS::setDomain(Domain* theDomain)
 	}
 	// Call Fortran function
     pml3d_(M, C, K, G, H, &NDOFEL, props, coords, &MCRD, &NNODE, &LFLAGS);
-    
-    // loop over num integration points and calculate the pml parameters for each
-    for (int i = 0; i < 27; i++) {
-        double x = xi[0][i];
-        double y = xi[1][i];
-        double z = xi[2][i];
-        double pmlAlphaBeta[2][3];
-        calculatePMLParameters(props, x, y, z, pmlAlphaBeta);
-    }
     
     // Verify the matrices
     verifyMatrices();
@@ -1227,4 +1148,63 @@ void  PML3DVISCOUS::Print(OPS_Stream &s, int flag) {
 		s << connectedExternalNodes(7) << "], ";
   	}
 	return;
+}
+
+
+
+// Implementation of verification function
+void PML3DVISCOUS::verifyMatrices() {
+    // Define tolerance for floating point comparisons
+    const double tolerance = 1e-3;
+    bool mismatchFound = false;
+    
+    // Compare M matrices
+    for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
+        if (fabs(M[i] - M_cpp[i]) > tolerance) {
+            opserr << "PML3DVISCOUS::verifyMatrices - Mismatch in M at element " << this->getTag() <<endln;
+            mismatchFound = true;
+            return;
+        }
+    }
+    
+    // Compare C matrices
+    for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
+        if (fabs(C[i] - C_cpp[i]) > tolerance) {
+            opserr << "PML3DVISCOUS::verifyMatrices - Mismatch in C at element " << this->getTag() <<endln;
+            mismatchFound = true;
+            return;
+        }
+    }
+    
+    // Compare K matrices
+    for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
+        if (fabs(K[i] - K_cpp[i]) > tolerance) {
+            opserr << "PML3DVISCOUS::verifyMatrices - Mismatch in K at element " << this->getTag() <<endln;
+            mismatchFound = true;
+            return;
+
+        }
+    }
+    
+    // Compare G matrices
+    for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
+        if (fabs(G[i] - G_cpp[i]) > tolerance) {
+            opserr << "PML3DVISCOUS::verifyMatrices - Mismatch in G at element " << this->getTag() <<endln;
+            mismatchFound = true;
+            return;
+        }
+    }
+    
+    // Compare H matrices
+    for (int i = 0; i < PML3DVISCOUS_NUM_DOF*PML3DVISCOUS_NUM_DOF; i++) {
+        if (fabs(H[i] - H_cpp[i]) > tolerance) {
+            opserr << "PML3DVISCOUS::verifyMatrices - Mismatch in H at element " << this->getTag() <<endln;
+            mismatchFound = true;
+            return;
+        }
+    }
+    
+    if (!mismatchFound) {
+        opserr << "PML3DVISCOUS::verifyMatrices - All matrices match between Fortran and C++ implementations for element " << this->getTag() <<endln;
+    }
 }
