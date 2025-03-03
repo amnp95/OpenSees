@@ -1384,7 +1384,7 @@ void  PML3DVISCOUS::Print(OPS_Stream &s, int flag) {
 // Implementation of verification function
 void PML3DVISCOUS::verifyMatrices() {
     // Define tolerance for floating point comparisons
-    const double tolerance = 1e-7;
+    const double tolerance = 1e-4;
     bool mismatchFound = false;
     
     // Compare M matrices

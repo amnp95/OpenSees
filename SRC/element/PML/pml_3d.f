@@ -700,49 +700,49 @@
      1   M_d(1:NNODE,1:NNODE)/rho/mu          
 
 
-      IF (EleType_pos .EQ. 1 .OR. LFLAGS(1).EQ.1 .OR. 
-     &       LFLAGS(1).EQ.2) THEN
+   !    IF (EleType_pos .EQ. 1 .OR. LFLAGS(1).EQ.1 .OR. 
+   !   &       LFLAGS(1).EQ.2) THEN
 
-          M_PML(1:NNODE*3,1:NNODE*3) = M_RD(1:NNODE*3,1:NNODE*3)
+   !        M_PML(1:NNODE*3,1:NNODE*3) = M_RD(1:NNODE*3,1:NNODE*3)
 
-          K_PML(1:NNODE*3,1:NNODE*3) = K_RD(1:NNODE*3,1:NNODE*3)
-          write(*,*) 'this 2 if statement is working'
+   !        K_PML(1:NNODE*3,1:NNODE*3) = K_RD(1:NNODE*3,1:NNODE*3)
+   !        write(*,*) 'this 2 if statement is working'
 
 
 
-      else
-          IF (EleType_pos .EQ. 1) THEN
+   !    else
+   !        IF (EleType_pos .EQ. 1) THEN
 
-          M_PML(1:NNODE*3,1:NNODE*3) = M_RD(1:NNODE*3,1:NNODE*3) + 
-     1                             M_a(1:NNODE*3,1:NNODE*3)
-          M_PML(NNODE*3+1:NNODE*9,NNODE*3+1:NNODE*9) = 
-     1                                      -N_a(1:NNODE*6,1:NNODE*6)
+   !        M_PML(1:NNODE*3,1:NNODE*3) = M_RD(1:NNODE*3,1:NNODE*3) + 
+   !   1                             M_a(1:NNODE*3,1:NNODE*3)
+   !        M_PML(NNODE*3+1:NNODE*9,NNODE*3+1:NNODE*9) = 
+   !   1                                      -N_a(1:NNODE*6,1:NNODE*6)
 
-          C_PML(1:NNODE*3,1:NNODE*3) = C_RD(1:NNODE*3,1:NNODE*3) + 
-     1                             M_b(1:NNODE*3,1:NNODE*3) 
-          C_PML(1:NNODE*3,NNODE*3+1:NNODE*9) = A_eu(1:NNODE*3,1:NNODE*6)
-          C_PML(NNODE*3+1:NNODE*9,1:NNODE*3) = 
-     1                         transpose(A_eu(1:NNODE*3,1:NNODE*6))
-          C_PML(NNODE*3+1:NNODE*9,NNODE*3+1:NNODE*9) = 
-     1                                      -N_b(1:NNODE*6,1:NNODE*6)
+   !        C_PML(1:NNODE*3,1:NNODE*3) = C_RD(1:NNODE*3,1:NNODE*3) + 
+   !   1                             M_b(1:NNODE*3,1:NNODE*3) 
+   !        C_PML(1:NNODE*3,NNODE*3+1:NNODE*9) = A_eu(1:NNODE*3,1:NNODE*6)
+   !        C_PML(NNODE*3+1:NNODE*9,1:NNODE*3) = 
+   !   1                         transpose(A_eu(1:NNODE*3,1:NNODE*6))
+   !        C_PML(NNODE*3+1:NNODE*9,NNODE*3+1:NNODE*9) = 
+   !   1                                      -N_b(1:NNODE*6,1:NNODE*6)
 
-          K_PML(1:NNODE*3,1:NNODE*3) = K_RD(1:NNODE*3,1:NNODE*3) + 
-     1                             M_c(1:NNODE*3,1:NNODE*3)
-          K_PML(1:NNODE*3,NNODE*3+1:NNODE*9) = A_pu(1:NNODE*3,1:NNODE*6)
-          K_PML(NNODE*3+1:NNODE*9,1:NNODE*3) = 
-     1                         transpose(A_pu(1:NNODE*3,1:NNODE*6))
-          K_PML(NNODE*3+1:NNODE*9,NNODE*3+1:NNODE*9) = 
-     1                                      -N_c(1:NNODE*6,1:NNODE*6)
+   !        K_PML(1:NNODE*3,1:NNODE*3) = K_RD(1:NNODE*3,1:NNODE*3) + 
+   !   1                             M_c(1:NNODE*3,1:NNODE*3)
+   !        K_PML(1:NNODE*3,NNODE*3+1:NNODE*9) = A_pu(1:NNODE*3,1:NNODE*6)
+   !        K_PML(NNODE*3+1:NNODE*9,1:NNODE*3) = 
+   !   1                         transpose(A_pu(1:NNODE*3,1:NNODE*6))
+   !        K_PML(NNODE*3+1:NNODE*9,NNODE*3+1:NNODE*9) = 
+   !   1                                      -N_c(1:NNODE*6,1:NNODE*6)
 
-          G_PML(1:NNODE*3,1:NNODE*3) = M_d(1:NNODE*3,1:NNODE*3)
-          G_PML(1:NNODE*3,NNODE*3+1:NNODE*9) = A_wu(1:NNODE*3,1:NNODE*6)
-          G_PML(NNODE*3+1:NNODE*9,1:NNODE*3) = 
-     1                         transpose(A_wu(1:NNODE*3,1:NNODE*6))
-          G_PML(NNODE*3+1:NNODE*9,NNODE*3+1:NNODE*9) = 
-     1                                      -N_d(1:NNODE*6,1:NNODE*6)
-         !  write(*,*) 'this 1 if statement is working'
+   !        G_PML(1:NNODE*3,1:NNODE*3) = M_d(1:NNODE*3,1:NNODE*3)
+   !        G_PML(1:NNODE*3,NNODE*3+1:NNODE*9) = A_wu(1:NNODE*3,1:NNODE*6)
+   !        G_PML(NNODE*3+1:NNODE*9,1:NNODE*3) = 
+   !   1                         transpose(A_wu(1:NNODE*3,1:NNODE*6))
+   !        G_PML(NNODE*3+1:NNODE*9,NNODE*3+1:NNODE*9) = 
+   !   1                                      -N_d(1:NNODE*6,1:NNODE*6)
+   !       !  write(*,*) 'this 1 if statement is working'
 
-        else
+   !      else
          ! write(*,*) 'this if statement is working'
           M_PML(1:NNODE*3,1:NNODE*3) = 
      1                            M_a(1:NNODE*3,1:NNODE*3)
@@ -784,10 +784,10 @@
      1     M_d(1:NNODE*3,1:NNODE*3)*Damp_alpha
 
 
-        endif 
+      !   endif 
 
 
-      endif 
+      ! endif 
 
 
         do i = 1,8
