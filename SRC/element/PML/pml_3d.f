@@ -277,6 +277,18 @@
       Damp_alpha = PROPS(11)
       Damp_beta = PROPS(12)
 
+
+      write(6,*) ' EleType_pos = ',EleType_pos
+      write(6,*) ' PML_L = ',PML_L
+      write(6,*) ' afp = ',afp
+      write(6,*) ' PML_Rcoef = ',PML_Rcoef
+      write(6,*) ' RD_half_width_x = ',RD_half_width_x
+      write(6,*) ' RD_half_width_y = ',RD_half_width_y
+      write(6,*) ' RD_depth = ',RD_depth
+      write(6,*) ' Damp_alpha = ',Damp_alpha
+      write(6,*) ' Damp_beta = ',Damp_beta
+      
+
       IF (afp .LT. 3.d0) THEN
         n_points = 27
       else
