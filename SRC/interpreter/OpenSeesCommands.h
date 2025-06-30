@@ -334,6 +334,12 @@ int OPS_getEleLoadTags();
 int OPS_getEleLoadData();
 int OPS_getNodeLoadTags();
 int OPS_getNodeLoadData();
+int OPS_getMaxNodeTag();
+int OPS_getMaxPatternTag();
+int OPS_getMaxEleTag();
+int OPS_getMaxRegionTag();
+int OPS_getMaxTimeSeriesTag();
+int OPS_getMaxMatTag();
 // Sensitivity:END /////////////////////////////////////////////
 
 /* OpenSeesMiscCommands.cpp */

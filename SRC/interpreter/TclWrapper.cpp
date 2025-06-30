@@ -1387,6 +1387,60 @@ static int Tcl_ops_getNodeLoadData(ClientData clientData, Tcl_Interp *interp, in
     return TCL_OK;
 }
 
+static int Tcl_ops_getMaxNodeTag(ClientData clientData, Tcl_Interp *interp, int argc,   TCL_Char **argv)
+{
+    wrapper->resetCommandLine(argc, 1, argv);
+
+    if (OPS_getMaxNodeTag() < 0) return TCL_ERROR;
+
+    return TCL_OK;
+}
+
+static int Tcl_ops_getMaxPatternTag(ClientData clientData, Tcl_Interp *interp, int argc,   TCL_Char **argv)
+{
+    wrapper->resetCommandLine(argc, 1, argv);
+
+    if (OPS_getMaxPatternTag() < 0) return TCL_ERROR;
+
+    return TCL_OK;
+}
+
+static int Tcl_ops_getMaxEleTag(ClientData clientData, Tcl_Interp *interp, int argc,   TCL_Char **argv)
+{
+    wrapper->resetCommandLine(argc, 1, argv);
+
+    if (OPS_getMaxEleTag() < 0) return TCL_ERROR;
+
+    return TCL_OK;
+}
+
+static int Tcl_ops_getMaxRegionTag(ClientData clientData, Tcl_Interp *interp, int argc,   TCL_Char **argv)
+{
+    wrapper->resetCommandLine(argc, 1, argv);
+
+    if (OPS_getMaxRegionTag() < 0) return TCL_ERROR;
+
+    return TCL_OK;
+}
+
+static int Tcl_ops_getMaxTimeSeriesTag(ClientData clientData, Tcl_Interp *interp, int argc,   TCL_Char **argv)
+{
+    wrapper->resetCommandLine(argc, 1, argv);
+
+    if (OPS_getMaxTimeSeriesTag() < 0) return TCL_ERROR;
+
+    return TCL_OK;
+}
+
+static int Tcl_ops_getMaxMatTag(ClientData clientData, Tcl_Interp *interp, int argc,   TCL_Char **argv)
+{
+    wrapper->resetCommandLine(argc, 1, argv);
+
+    if (OPS_getMaxMatTag() < 0) return TCL_ERROR;
+
+    return TCL_OK;
+}
+
 static int Tcl_ops_randomVariable(ClientData clientData, Tcl_Interp *interp, int argc,   TCL_Char **argv)
 {
     wrapper->resetCommandLine(argc, 1, argv);
@@ -1831,6 +1885,12 @@ TclWrapper::addOpenSeesCommands(Tcl_Interp* interp)
     addCommand(interp,"getEleLoadData", &Tcl_ops_getEleLoadData);
     addCommand(interp,"getNodeLoadTags", &Tcl_ops_getNodeLoadTags);
     addCommand(interp,"getNodeLoadData", &Tcl_ops_getNodeLoadData);
+    addCommand(interp,"getMaxNodeTag", &Tcl_ops_getMaxNodeTag);
+    addCommand(interp,"getMaxPatternTag", &Tcl_ops_getMaxPatternTag);
+    addCommand(interp,"getMaxEleTag", &Tcl_ops_getMaxEleTag);
+    addCommand(interp,"getMaxRegionTag", &Tcl_ops_getMaxRegionTag);
+    addCommand(interp,"getMaxTimeSeriesTag", &Tcl_ops_getMaxTimeSeriesTag);
+    addCommand(interp,"getMaxMatTag", &Tcl_ops_getMaxMatTag);
     addCommand(interp,"randomVariable", &Tcl_ops_randomVariable);
     addCommand(interp,"getRVTags", &Tcl_ops_getRVTags);
     addCommand(interp,"getMean", &Tcl_ops_getRVMean);

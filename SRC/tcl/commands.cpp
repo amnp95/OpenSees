@@ -118,6 +118,7 @@ extern "C" int         OPS_ResetInputNoBuilder(ClientData clientData, Tcl_Interp
 #include <NodeIter.h>
 #include <LoadPattern.h>
 #include <LoadPatternIter.h>
+#include <ID.h>
 #include <NodalLoad.h>
 #include <NodalLoadIter.h>
 #include <ElementalLoad.h>
@@ -1060,9 +1061,21 @@ int OpenSeesAppInit(Tcl_Interp *interp) {
     Tcl_CreateCommand(interp, "getEleLoadData", &getEleLoadData,
 		      (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
     Tcl_CreateCommand(interp, "getNodeLoadTags", &getNodeLoadTags,
-		      (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
+                      (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
     Tcl_CreateCommand(interp, "getNodeLoadData", &getNodeLoadData,
-		      (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
+                      (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
+    Tcl_CreateCommand(interp, "getMaxNodeTag", &getMaxNodeTag,
+                      (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
+    Tcl_CreateCommand(interp, "getMaxPatternTag", &getMaxPatternTag,
+                      (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
+    Tcl_CreateCommand(interp, "getMaxEleTag", &getMaxEleTag,
+                      (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
+    Tcl_CreateCommand(interp, "getMaxRegionTag", &getMaxRegionTag,
+                      (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
+    Tcl_CreateCommand(interp, "getMaxTimeSeriesTag", &getMaxTimeSeriesTag,
+                      (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
+    Tcl_CreateCommand(interp, "getMaxMatTag", &getMaxMatTag,
+                      (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
 
     Tcl_CreateCommand(interp, "sdfResponse", &sdfResponse, 
 		      (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);  
@@ -5924,6 +5937,9 @@ videoPlayer(ClientData clientData, Tcl_Interp *interp, int argc,
 
 
 extern bool OPS_removeTimeSeries(int tag);
+extern int OPS_GetMaxTimeSeriesTag();
+extern int OPS_GetMaxUniaxialMaterialTag();
+extern int OPS_GetMaxNDMaterialTag();
 
 int 
 removeObject(ClientData clientData, Tcl_Interp *interp, int argc, 
@@ -9323,6 +9339,102 @@ getNodeLoadData(ClientData clientData, Tcl_Interp *interp, int argc, TCL_Char **
     return TCL_ERROR;
   }
 
+  return TCL_OK;
+}
+
+
+
+int
+getMaxNodeTag(ClientData clientData, Tcl_Interp *interp, int argc, TCL_Char **argv)
+{
+  Node *theNode = nullptr;
+  NodeIter &theNodes = theDomain.getNodes();
+  int maxTag = 0;
+  while ((theNode = theNodes()) != nullptr) {
+    int tag = theNode->getTag();
+    if (tag > maxTag) maxTag = tag;
+  }
+
+  char buffer[20];
+  sprintf(buffer, "%d", maxTag);
+  Tcl_SetResult(interp, buffer, TCL_VOLATILE);
+  return TCL_OK;
+}
+
+int
+getMaxPatternTag(ClientData clientData, Tcl_Interp *interp, int argc, TCL_Char **argv)
+{
+  LoadPattern *thePattern = nullptr;
+  LoadPatternIter &thePatterns = theDomain.getLoadPatterns();
+  int maxTag = 0;
+  while ((thePattern = thePatterns()) != nullptr) {
+    int tag = thePattern->getTag();
+    if (tag > maxTag) maxTag = tag;
+  }
+
+  char buffer[20];
+  sprintf(buffer, "%d", maxTag);
+  Tcl_SetResult(interp, buffer, TCL_VOLATILE);
+  return TCL_OK;
+}
+
+int
+getMaxEleTag(ClientData clientData, Tcl_Interp *interp, int argc, TCL_Char **argv)
+{
+  Element *theEle = nullptr;
+  ElementIter &theEles = theDomain.getElements();
+  int maxTag = 0;
+  while ((theEle = theEles()) != nullptr) {
+    int tag = theEle->getTag();
+    if (tag > maxTag) maxTag = tag;
+  }
+
+  char buffer[20];
+  sprintf(buffer, "%d", maxTag);
+  Tcl_SetResult(interp, buffer, TCL_VOLATILE);
+  return TCL_OK;
+}
+
+int
+getMaxRegionTag(ClientData clientData, Tcl_Interp *interp, int argc, TCL_Char **argv)
+{
+  ID tags;
+  theDomain.getRegionTags(tags);
+  int maxTag = 0;
+  for (int i=0; i<tags.Size(); ++i) {
+    if (tags(i) > maxTag) maxTag = tags(i);
+  }
+
+  char buffer[20];
+  sprintf(buffer, "%d", maxTag);
+  Tcl_SetResult(interp, buffer, TCL_VOLATILE);
+  return TCL_OK;
+}
+
+extern int OPS_GetMaxTimeSeriesTag();
+extern int OPS_GetMaxUniaxialMaterialTag();
+extern int OPS_GetMaxNDMaterialTag();
+
+int
+getMaxTimeSeriesTag(ClientData clientData, Tcl_Interp *interp, int argc, TCL_Char **argv)
+{
+  int maxTag = OPS_GetMaxTimeSeriesTag();
+  char buffer[20];
+  sprintf(buffer, "%d", maxTag);
+  Tcl_SetResult(interp, buffer, TCL_VOLATILE);
+  return TCL_OK;
+}
+
+int
+getMaxMatTag(ClientData clientData, Tcl_Interp *interp, int argc, TCL_Char **argv)
+{
+  int maxTag = OPS_GetMaxUniaxialMaterialTag();
+  int val = OPS_GetMaxNDMaterialTag();
+  if (val > maxTag) maxTag = val;
+
+  char buffer[20];
+  sprintf(buffer, "%d", maxTag);
+  Tcl_SetResult(interp, buffer, TCL_VOLATILE);
   return TCL_OK;
 }
 

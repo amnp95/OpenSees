@@ -2417,6 +2417,78 @@ static PyObject *Py_ops_getNodeLoadData(PyObject *self, PyObject *args)
     return wrapper->getResults();
 }
 
+static PyObject *Py_ops_getMaxNodeTag(PyObject *self, PyObject *args)
+{
+    wrapper->resetCommandLine(PyTuple_Size(args), 1, args);
+
+    if (OPS_getMaxNodeTag() < 0) {
+        opserr<<(void*)0;
+        return NULL;
+    }
+
+    return wrapper->getResults();
+}
+
+static PyObject *Py_ops_getMaxPatternTag(PyObject *self, PyObject *args)
+{
+    wrapper->resetCommandLine(PyTuple_Size(args), 1, args);
+
+    if (OPS_getMaxPatternTag() < 0) {
+        opserr<<(void*)0;
+        return NULL;
+    }
+
+    return wrapper->getResults();
+}
+
+static PyObject *Py_ops_getMaxEleTag(PyObject *self, PyObject *args)
+{
+    wrapper->resetCommandLine(PyTuple_Size(args), 1, args);
+
+    if (OPS_getMaxEleTag() < 0) {
+        opserr<<(void*)0;
+        return NULL;
+    }
+
+    return wrapper->getResults();
+}
+
+static PyObject *Py_ops_getMaxRegionTag(PyObject *self, PyObject *args)
+{
+    wrapper->resetCommandLine(PyTuple_Size(args), 1, args);
+
+    if (OPS_getMaxRegionTag() < 0) {
+        opserr<<(void*)0;
+        return NULL;
+    }
+
+    return wrapper->getResults();
+}
+
+static PyObject *Py_ops_getMaxTimeSeriesTag(PyObject *self, PyObject *args)
+{
+    wrapper->resetCommandLine(PyTuple_Size(args), 1, args);
+
+    if (OPS_getMaxTimeSeriesTag() < 0) {
+        opserr<<(void*)0;
+        return NULL;
+    }
+
+    return wrapper->getResults();
+}
+
+static PyObject *Py_ops_getMaxMatTag(PyObject *self, PyObject *args)
+{
+    wrapper->resetCommandLine(PyTuple_Size(args), 1, args);
+
+    if (OPS_getMaxMatTag() < 0) {
+        opserr<<(void*)0;
+        return NULL;
+    }
+
+    return wrapper->getResults();
+}
+
 static PyObject *Py_ops_randomVariable(PyObject *self, PyObject *args)
 {
     wrapper->resetCommandLine(PyTuple_Size(args), 1, args);
@@ -3169,6 +3241,12 @@ PythonWrapper::addOpenSeesCommands()
     addCommand("getEleLoadData", &Py_ops_getEleLoadData);
     addCommand("getNodeLoadTags", &Py_ops_getNodeLoadTags);
     addCommand("getNodeLoadData", &Py_ops_getNodeLoadData);
+    addCommand("getMaxNodeTag", &Py_ops_getMaxNodeTag);
+    addCommand("getMaxPatternTag", &Py_ops_getMaxPatternTag);
+    addCommand("getMaxEleTag", &Py_ops_getMaxEleTag);
+    addCommand("getMaxRegionTag", &Py_ops_getMaxRegionTag);
+    addCommand("getMaxTimeSeriesTag", &Py_ops_getMaxTimeSeriesTag);
+    addCommand("getMaxMatTag", &Py_ops_getMaxMatTag);
     addCommand("randomVariable", &Py_ops_randomVariable);
     addCommand("filter", &Py_ops_filter);
     addCommand("modulatingFunction", &Py_ops_modulatingFunction);

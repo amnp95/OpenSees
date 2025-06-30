@@ -68,6 +68,20 @@ TimeSeries *OPS_getTimeSeries(int tag) {
 void OPS_clearAllTimeSeries(void) {
   theTimeSeriesObjects.clearAll();
 }
+
+int OPS_GetMaxTimeSeriesTag()
+{
+    MapOfTaggedObjectsIter theObjects = theTimeSeriesObjects.getIter();
+    theObjects.reset();
+    TaggedObject *theObject;
+    int maxTag = 0;
+    while ((theObject = theObjects()) != 0) {
+        TimeSeries *theSeries = (TimeSeries *)theObject;
+        if (theSeries->getTag() > maxTag)
+            maxTag = theSeries->getTag();
+    }
+    return maxTag;
+}
     
 
 TimeSeries::TimeSeries(int tag, int classTag)

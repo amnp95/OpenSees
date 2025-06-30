@@ -4017,4 +4017,118 @@ int OPS_getNumElements()
     return 0;
 }
 
+extern int OPS_GetMaxUniaxialMaterialTag();
+extern int OPS_GetMaxNDMaterialTag();
+extern int OPS_GetMaxTimeSeriesTag();
+
+int OPS_getMaxNodeTag()
+{
+    Domain* theDomain = OPS_GetDomain();
+    if (theDomain == 0) return -1;
+
+    NodeIter& theNodes = theDomain->getNodes();
+    Node* theNode = nullptr;
+    int maxTag = 0;
+    while ((theNode = theNodes()) != 0) {
+        int tag = theNode->getTag();
+        if (tag > maxTag) maxTag = tag;
+    }
+
+    int size = 1;
+    if (OPS_SetIntOutput(&size, &maxTag, false) < 0) {
+        opserr << "WARNING failed to set output\n";
+        return -1;
+    }
+    return 0;
+}
+
+int OPS_getMaxPatternTag()
+{
+    Domain* theDomain = OPS_GetDomain();
+    if (theDomain == 0) return -1;
+
+    LoadPatternIter& thePatterns = theDomain->getLoadPatterns();
+    LoadPattern* thePattern = nullptr;
+    int maxTag = 0;
+    while ((thePattern = thePatterns()) != 0) {
+        int tag = thePattern->getTag();
+        if (tag > maxTag) maxTag = tag;
+    }
+
+    int size = 1;
+    if (OPS_SetIntOutput(&size, &maxTag, false) < 0) {
+        opserr << "WARNING failed to set output\n";
+        return -1;
+    }
+    return 0;
+}
+
+int OPS_getMaxEleTag()
+{
+    Domain* theDomain = OPS_GetDomain();
+    if (theDomain == 0) return -1;
+
+    ElementIter& theEles = theDomain->getElements();
+    Element* theEle = nullptr;
+    int maxTag = 0;
+    while ((theEle = theEles()) != 0) {
+        int tag = theEle->getTag();
+        if (tag > maxTag) maxTag = tag;
+    }
+
+    int size = 1;
+    if (OPS_SetIntOutput(&size, &maxTag, false) < 0) {
+        opserr << "WARNING failed to set output\n";
+        return -1;
+    }
+    return 0;
+}
+
+int OPS_getMaxRegionTag()
+{
+    Domain* theDomain = OPS_GetDomain();
+    if (theDomain == 0) return -1;
+
+    ID rtags;
+    theDomain->getRegionTags(rtags);
+    int maxTag = 0;
+    for (int i=0; i<rtags.Size(); ++i) {
+        if (rtags(i) > maxTag) maxTag = rtags(i);
+    }
+
+    int size = 1;
+    if (OPS_SetIntOutput(&size, &maxTag, false) < 0) {
+        opserr << "WARNING failed to set output\n";
+        return -1;
+    }
+    return 0;
+}
+
+int OPS_getMaxTimeSeriesTag()
+{
+    int maxTag = OPS_GetMaxTimeSeriesTag();
+    int size = 1;
+    if (OPS_SetIntOutput(&size, &maxTag, false) < 0) {
+        opserr << "WARNING failed to set output\n";
+        return -1;
+    }
+    return 0;
+}
+
+int OPS_getMaxMatTag()
+{
+    int maxTag = 0;
+    int tag1 = OPS_GetMaxUniaxialMaterialTag();
+    if (tag1 > maxTag) maxTag = tag1;
+    int tag2 = OPS_GetMaxNDMaterialTag();
+    if (tag2 > maxTag) maxTag = tag2;
+
+    int size = 1;
+    if (OPS_SetIntOutput(&size, &maxTag, false) < 0) {
+        opserr << "WARNING failed to set output\n";
+        return -1;
+    }
+    return 0;
+}
+
 // Sensitivity:END /////////////////////////////////////////////

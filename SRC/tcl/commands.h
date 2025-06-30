@@ -302,8 +302,21 @@ getEleLoadData(ClientData clientData, Tcl_Interp *interp, int argc, TCL_Char **a
 int 
 getNodeLoadTags(ClientData clientData, Tcl_Interp *interp, int argc, TCL_Char **argv);
 
-int 
+int
 getNodeLoadData(ClientData clientData, Tcl_Interp *interp, int argc, TCL_Char **argv);
+
+int
+getMaxNodeTag(ClientData clientData, Tcl_Interp *interp, int argc, TCL_Char **argv);
+int
+getMaxPatternTag(ClientData clientData, Tcl_Interp *interp, int argc, TCL_Char **argv);
+int
+getMaxEleTag(ClientData clientData, Tcl_Interp *interp, int argc, TCL_Char **argv);
+int
+getMaxRegionTag(ClientData clientData, Tcl_Interp *interp, int argc, TCL_Char **argv);
+int
+getMaxTimeSeriesTag(ClientData clientData, Tcl_Interp *interp, int argc, TCL_Char **argv);
+int
+getMaxMatTag(ClientData clientData, Tcl_Interp *interp, int argc, TCL_Char **argv);
 
 int 
 startTimer(ClientData clientData, Tcl_Interp *interp, int argc, TCL_Char **argv);

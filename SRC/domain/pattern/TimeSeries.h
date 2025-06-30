@@ -83,5 +83,6 @@ extern void OPS_clearAllTimeSeries(void);
 extern bool OPS_addTimeSeries(TimeSeries *newComponent);
 extern TimeSeries *OPS_getTimeSeries(int tag);
 extern bool OPS_removeTimeSeries(int tag);
+extern int OPS_GetMaxTimeSeriesTag();
 
 #endif

@@ -106,6 +106,20 @@ void OPS_printNDMaterial(OPS_Stream &s, int flag) {
     }
 }
 
+int OPS_GetMaxNDMaterialTag()
+{
+    MapOfTaggedObjectsIter theObjects = theNDMaterialObjects.getIter();
+    theObjects.reset();
+    TaggedObject *theObject;
+    int maxTag = 0;
+    while ((theObject = theObjects()) != 0) {
+        NDMaterial *theMaterial = (NDMaterial *)theObject;
+        if (theMaterial->getTag() > maxTag)
+            maxTag = theMaterial->getTag();
+    }
+    return maxTag;
+}
+
 NDMaterial::NDMaterial(int tag, int classTag)
 :Material(tag,classTag)
 {

@@ -94,6 +94,20 @@ void OPS_printUniaxialMaterial(OPS_Stream &s, int flag) {
   }
 }
 
+int OPS_GetMaxUniaxialMaterialTag()
+{
+    MapOfTaggedObjectsIter theObjects = theUniaxialMaterialObjects.getIter();
+    theObjects.reset();
+    TaggedObject *theObject;
+    int maxTag = 0;
+    while ((theObject = theObjects()) != 0) {
+        UniaxialMaterial *theMaterial = (UniaxialMaterial *)theObject;
+        if (theMaterial->getTag() > maxTag)
+            maxTag = theMaterial->getTag();
+    }
+    return maxTag;
+}
+
 UniaxialMaterial::UniaxialMaterial(int tag, int clasTag)
 :Material(tag,clasTag)
 {
