@@ -6,7 +6,10 @@
         - colab-build
 
     workflow_dispatch:
-
+    
+  permissions:
+    contents: write
+    
   jobs:
     build-ubuntu:
       name: Build OpenSees on Ubuntu 22.04
@@ -116,3 +119,25 @@
               OpenSees-Colab-linux-x86_64.tar.gz.sha256
             if-no-files-found: error
             retention-days: 30
+            
+        - name: Publish rolling Colab release
+          shell: bash
+          env:
+            GH_TOKEN: ${{ github.token }}
+          run: |
+            set -euo pipefail
+
+            RELEASE_TAG="opensees-colab-latest"
+
+            if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+              gh release create "$RELEASE_TAG" \
+                --target "$GITHUB_SHA" \
+                --title "OpenSees for Google Colab" \
+                --notes "Automatically built on Ubuntu 22.04 from commit ${GITHUB_SHA}." \
+                --prerelease
+            fi
+
+            gh release upload "$RELEASE_TAG" \
+              OpenSees-Colab-linux-x86_64.tar.gz \
+              OpenSees-Colab-linux-x86_64.tar.gz.sha256 \
+              --clobber
